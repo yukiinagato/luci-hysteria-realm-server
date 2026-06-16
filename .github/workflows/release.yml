@@ -96,9 +96,53 @@ jobs:
             hysteria-realm-server-linux-${{ matrix.asset }}.sha256
           if-no-files-found: error
 
+  package:
+    name: Package ipk (OpenWrt ${{ matrix.branch }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { sdk: "x86_64-23.05.6", branch: "23.05" }
+          - { sdk: "x86_64-24.10.7", branch: "24.10" }
+    steps:
+      - name: Checkout plugin repo
+        uses: actions/checkout@v4
+
+      # Both packages are PKGARCH:=all (arch-independent), so a single SDK
+      # build per OpenWrt branch produces _all.ipk files usable on every CPU.
+      - name: Build .ipk via OpenWrt SDK
+        uses: openwrt/gh-action-sdk@main
+        env:
+          ARCH: ${{ matrix.sdk }}
+          FEEDNAME: hrs
+          PACKAGES: hysteria-realm-server luci-app-hysteria-realm-server
+          NO_REFRESH_CHECK: "1"
+          NO_SHFMT_CHECK: "1"
+          V: s
+
+      - name: Collect and tag .ipk with OpenWrt branch
+        run: |
+          mkdir -p out
+          found=0
+          for f in $(find bin -name '*.ipk'); do
+            base="$(basename "$f" .ipk)"
+            cp "$f" "out/${base}_openwrt-${{ matrix.branch }}.ipk"
+            found=1
+          done
+          [ "$found" = 1 ] || { echo "No .ipk produced"; exit 1; }
+          ls -l out
+
+      - name: Upload ipk artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ipk-${{ matrix.branch }}
+          path: out/*.ipk
+          if-no-files-found: error
+
   release:
     name: Publish release
-    needs: build
+    needs: [ build, package ]
     runs-on: ubuntu-latest
     permissions:
       contents: write

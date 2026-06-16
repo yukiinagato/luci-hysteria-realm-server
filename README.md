@@ -91,10 +91,25 @@ Release(每个文件附带 `.sha256` 校验):
 | `…-mips64le_softfloat` | mips64le softfloat | `mips64el_*` |
 | `…-riscv64` | riscv64 | `riscv64*` |
 
+CI 同时会用 **OpenWrt 官方 SDK** 把插件本身编译成可直接 `opkg install` 的 `.ipk`
+(两个包都是架构无关 `all`,因此每个 OpenWrt 分支只构建一次即可用于所有 CPU):
+
+- `luci-app-hysteria-realm-server_*_all_openwrt-23.05.ipk` / `…_openwrt-24.10.ipk`
+- `hysteria-realm-server_*_all_openwrt-23.05.ipk` / `…_openwrt-24.10.ipk`
+
+安装(把 luci-app 的依赖一并装上):
+
+```sh
+opkg install ./hysteria-realm-server_*_all_openwrt-23.05.ipk
+opkg install ./luci-app-hysteria-realm-server_*_all_openwrt-23.05.ipk
+```
+
+> 更老的固件(21.02/22.03)请用对应 SDK 自行编译;新版 LuCI(23.05/24.10)直接用上面的 ipk。
+
 **触发方式:**
 
 - **推送 tag**:`git tag v1.0.1 && git push origin v1.0.1` → 自动构建上游 `v1.0.1`
-  并以 `v1.0.1` 发布。插件默认 `version=1.0.1`,即可自动匹配下载。
+  的二进制 + 插件 ipk,并以 `v1.0.1` 发布。插件默认 `version=1.0.1`,即可自动匹配下载。
 - **手动**:在 GitHub 的 Actions 页面运行工作流,填上游版本与发布标签(可用于打
   自定义后缀,如把上游 1.0.1 发布成 `v1.0.1-1`)。
 
@@ -169,10 +184,20 @@ riscv64) and publishes them — each with a `.sha256` sidecar — to this repo's
 GitHub Release. The plugin maps the router `DISTRIB_ARCH` to the matching asset
 and verifies the checksum.
 
+The same workflow also builds the plugin itself into installable `.ipk` files
+via the official OpenWrt SDK (both packages are arch-independent `all`, so one
+build per OpenWrt branch covers every CPU), for OpenWrt 23.05 and 24.10:
+
+```sh
+opkg install ./hysteria-realm-server_*_all_openwrt-23.05.ipk
+opkg install ./luci-app-hysteria-realm-server_*_all_openwrt-23.05.ipk
+```
+
 Trigger by pushing a tag (`git push origin v1.0.1`) or running the workflow
 manually from the Actions tab. The download source repo is the UCI option
-`release_repo` (default `yukiinagato/luci-hysteria-realm-server`). For an
-architecture not in the matrix, set a **Custom download URL** in Settings.
+`release_repo` (default `yukiinagato/luci-hysteria-realm-server`). For a CPU
+not in the matrix, set a **Custom download URL** in Settings; for firmware
+older than 23.05, build the ipk from the matching SDK yourself.
 
 ### Security notes
 
