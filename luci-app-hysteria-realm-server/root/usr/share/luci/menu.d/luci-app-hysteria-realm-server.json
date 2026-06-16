@@ -1,0 +1,28 @@
+{
+	"admin/services/hysteria-realm-server": {
+		"title": "Hysteria Realm Server",
+		"order": 60,
+		"action": { "type": "firstchild" },
+		"depends": { "acl": [ "luci-app-hysteria-realm-server" ] }
+	},
+	"admin/services/hysteria-realm-server/overview": {
+		"title": "Overview",
+		"order": 10,
+		"action": { "type": "view", "path": "hysteria-realm-server/overview" }
+	},
+	"admin/services/hysteria-realm-server/config": {
+		"title": "Settings",
+		"order": 20,
+		"action": { "type": "view", "path": "hysteria-realm-server/config" }
+	},
+	"admin/services/hysteria-realm-server/tls": {
+		"title": "TLS Certificate",
+		"order": 30,
+		"action": { "type": "view", "path": "hysteria-realm-server/tls" }
+	},
+	"admin/services/hysteria-realm-server/logs": {
+		"title": "Logs",
+		"order": 40,
+		"action": { "type": "view", "path": "hysteria-realm-server/logs" }
+	}
+}

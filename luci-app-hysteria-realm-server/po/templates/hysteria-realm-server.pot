@@ -1,0 +1,300 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Project-Id-Version: luci-app-hysteria-realm-server\n"
+
+# --- Menu ---
+msgid "Hysteria Realm Server"
+msgstr ""
+
+msgid "Overview"
+msgstr ""
+
+msgid "Settings"
+msgstr ""
+
+msgid "TLS Certificate"
+msgstr ""
+
+msgid "Logs"
+msgstr ""
+
+# --- Overview ---
+msgid "Please wait…"
+msgstr ""
+
+msgid "Operation completed successfully."
+msgstr ""
+
+msgid "Operation failed."
+msgstr ""
+
+msgid "Downloading core…"
+msgstr ""
+
+msgid "Detecting CPU architecture and downloading the matching binary from GitHub. This may take a minute."
+msgstr ""
+
+msgid "Core binary installed successfully."
+msgstr ""
+
+msgid "Failed to download the core binary (code %s)."
+msgstr ""
+
+msgid "Collecting data…"
+msgstr ""
+
+msgid "Running"
+msgstr ""
+
+msgid "Stopped"
+msgstr ""
+
+msgid "Service"
+msgstr ""
+
+msgid "Boot autostart"
+msgstr ""
+
+msgid "Enabled"
+msgstr ""
+
+msgid "Disabled"
+msgstr ""
+
+msgid "Core binary"
+msgstr ""
+
+msgid "Installed"
+msgstr ""
+
+msgid "Not installed"
+msgstr ""
+
+msgid "CPU / asset"
+msgstr ""
+
+msgid "(unsupported CPU — set a custom URL)"
+msgstr ""
+
+msgid "Listen"
+msgstr ""
+
+msgid "Rendezvous server for the Hysteria 2 P2P (Realms) feature. It coordinates UDP hole punching so you can host Hysteria servers behind NAT without a public IP or port forwarding."
+msgstr ""
+
+msgid "Status"
+msgstr ""
+
+msgid "Service control"
+msgstr ""
+
+msgid "Start"
+msgstr ""
+
+msgid "Stop"
+msgstr ""
+
+msgid "Restart"
+msgstr ""
+
+msgid "Enable autostart"
+msgstr ""
+
+msgid "Disable autostart"
+msgstr ""
+
+msgid "Starting service…"
+msgstr ""
+
+msgid "Stopping service…"
+msgstr ""
+
+msgid "Restarting service…"
+msgstr ""
+
+msgid "Enabling…"
+msgstr ""
+
+msgid "Disabling…"
+msgstr ""
+
+msgid "Download / Update core"
+msgstr ""
+
+msgid "Download or update the core binary matching your router CPU, built by this project's GitHub Actions CI for all common OpenWrt architectures (x86_64, arm64, armv7/v5, mips/mipsel, mips64, riscv64, …)."
+msgstr ""
+
+msgid "Connection example"
+msgstr ""
+
+msgid "Paste the matching block into your Hysteria 2 config. Replace the public IP/domain with how clients reach this router."
+msgstr ""
+
+msgid "Server side"
+msgstr ""
+
+msgid "Client side"
+msgstr ""
+
+msgid "No token is set yet. Generate one in Settings before starting the service."
+msgstr ""
+
+# --- Settings ---
+msgid "Failed to generate a token."
+msgstr ""
+
+msgid "A new random token was generated. Remember to Save & Apply."
+msgstr ""
+
+msgid "Generate"
+msgstr ""
+
+msgid "Hysteria Realm Server — Settings"
+msgstr ""
+
+msgid "Configure the rendezvous server. Changes take effect after Save & Apply (the service restarts automatically)."
+msgstr ""
+
+msgid "General"
+msgstr ""
+
+msgid "Limits"
+msgstr ""
+
+msgid "Advanced"
+msgstr ""
+
+msgid "Master switch for the service."
+msgstr ""
+
+msgid "Listen address"
+msgstr ""
+
+msgid "Bind address. Use 0.0.0.0 for all interfaces."
+msgstr ""
+
+msgid "Listen port"
+msgstr ""
+
+msgid "TCP port for the HTTP/HTTPS rendezvous API."
+msgstr ""
+
+msgid "Shared token"
+msgstr ""
+
+msgid "Bearer token required for realm registration and connection. Both the Hysteria server and clients must use the same value. REQUIRED."
+msgstr ""
+
+msgid "Auto-open firewall"
+msgstr ""
+
+msgid "Automatically add an input ACCEPT rule on the WAN zone for the listen port. Disable if you manage the firewall manually."
+msgstr ""
+
+msgid "Max realms"
+msgstr ""
+
+msgid "Maximum total number of registered realms. 0 disables the limit."
+msgstr ""
+
+msgid "Max realms per IP"
+msgstr ""
+
+msgid "Maximum realms per client IP. 0 disables the limit."
+msgstr ""
+
+msgid "Debug logging"
+msgstr ""
+
+msgid "Enable verbose logs for registration, sessions and punches."
+msgstr ""
+
+msgid "Trusted proxy header"
+msgstr ""
+
+msgid "Header to read the real client IP from when behind a trusted reverse proxy/CDN (e.g. X-Forwarded-For, CF-Connecting-IP). Leave empty if not proxied — enabling it on a directly-exposed server lets clients spoof their IP."
+msgstr ""
+
+msgid "Realm name pattern"
+msgstr ""
+
+msgid "Regular expression that realm names must match."
+msgstr ""
+
+msgid "Core version"
+msgstr ""
+
+msgid "Upstream release version to download (e.g. 1.0.1). Must match a tag published by the release repository."
+msgstr ""
+
+msgid "Release repository"
+msgstr ""
+
+msgid "GitHub repository (owner/name) that hosts the CI-built per-architecture binaries."
+msgstr ""
+
+msgid "Custom download URL"
+msgstr ""
+
+msgid "Override the full binary download URL (highest priority). Use it only for CPUs without a published binary — point it to a self-compiled binary. Leave empty for auto-detection."
+msgstr ""
+
+# --- TLS ---
+msgid "Serve the rendezvous API over HTTPS. When TLS is disabled the server runs plain HTTP — fine behind another TLS-terminating proxy, but not recommended for direct exposure."
+msgstr ""
+
+msgid "Enable TLS"
+msgstr ""
+
+msgid "Use the certificate and key below. The service falls back to HTTP if either file is missing."
+msgstr ""
+
+msgid "Certificate path"
+msgstr ""
+
+msgid "Private key path"
+msgstr ""
+
+msgid "Generating certificate…"
+msgstr ""
+
+msgid "Creating a self-signed ECDSA certificate…"
+msgstr ""
+
+msgid "Certificate generated at %s. Enable TLS above, then Save & Apply."
+msgstr ""
+
+msgid "Certificate generation failed."
+msgstr ""
+
+msgid "Generate self-signed certificate"
+msgstr ""
+
+msgid "Quick self-signed certificate"
+msgstr ""
+
+msgid "Generates a certificate/key pair at the configured paths. Self-signed certificates require clients to disable certificate verification (insecure: true in the Hysteria realm config)."
+msgstr ""
+
+msgid "Common name (CN)"
+msgstr ""
+
+msgid "Valid days"
+msgstr ""
+
+# --- Logs ---
+msgid "Service logs"
+msgstr ""
+
+msgid "Live output captured from the service via the system log (logread). Updates every 5 seconds."
+msgstr ""
+
+msgid "Refresh now"
+msgstr ""
+
+msgid "Auto-scroll to bottom"
+msgstr ""
+
+msgid "(no log entries yet — start the service to produce logs)"
+msgstr ""

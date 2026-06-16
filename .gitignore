@@ -1,0 +1,12 @@
+# Build artifacts
+*.ipk
+*.bin
+/dist/
+/tmp/
+
+# Editor / OS
+.DS_Store
+*.swp
+*~
+.idea/
+.vscode/

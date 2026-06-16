@@ -1,0 +1,127 @@
+name: Build OpenWrt binaries
+
+# Cross-compiles the upstream apernet/hysteria-realm-server (pure Go, CGO
+# disabled) for every architecture commonly used by OpenWrt, then publishes
+# the binaries to this repository's GitHub Release. The LuCI plugin downloads
+# the binary matching the router's DISTRIB_ARCH from here.
+#
+# Triggers:
+#   * push a tag like v1.0.1            -> builds upstream v1.0.1, releases as v1.0.1
+#   * manual run (workflow_dispatch)    -> choose upstream version and release tag
+
+on:
+  push:
+    tags: [ "v*" ]
+  workflow_dispatch:
+    inputs:
+      upstream_version:
+        description: "Upstream hysteria-realm-server version (no leading v), e.g. 1.0.1"
+        required: true
+        default: "1.0.1"
+      release_tag:
+        description: "Tag to publish the release under, e.g. v1.0.1"
+        required: true
+        default: "v1.0.1"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.asset }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { goarch: amd64,                              asset: amd64 }
+          - { goarch: "386",                              asset: "386" }
+          - { goarch: arm64,                              asset: arm64 }
+          - { goarch: arm,      goarm: "7",               asset: armv7 }
+          - { goarch: arm,      goarm: "5",               asset: armv5 }
+          - { goarch: mips,     gomips: softfloat,        asset: mips_softfloat }
+          - { goarch: mipsle,   gomips: softfloat,        asset: mipsle_softfloat }
+          - { goarch: mips64,   gomips64: softfloat,      asset: mips64_softfloat }
+          - { goarch: mips64le, gomips64: softfloat,      asset: mips64le_softfloat }
+          - { goarch: riscv64,                            asset: riscv64 }
+    steps:
+      - name: Resolve versions
+        id: ver
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            tag="${GITHUB_REF_NAME}"
+            ver="${tag#v}"
+          else
+            tag="${{ github.event.inputs.release_tag }}"
+            ver="${{ github.event.inputs.upstream_version }}"
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "ver=$ver" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout upstream source
+        uses: actions/checkout@v4
+        with:
+          repository: apernet/hysteria-realm-server
+          ref: v${{ steps.ver.outputs.ver }}
+          path: src
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: src/go.mod
+          check-latest: true
+
+      - name: Build
+        working-directory: src
+        env:
+          CGO_ENABLED: "0"
+          GOOS: linux
+          GOARCH: ${{ matrix.goarch }}
+          GOARM: ${{ matrix.goarm }}
+          GOMIPS: ${{ matrix.gomips }}
+          GOMIPS64: ${{ matrix.gomips64 }}
+        run: |
+          out="hysteria-realm-server-linux-${{ matrix.asset }}"
+          go build -trimpath -ldflags="-s -w" -o "../$out"
+          cd ..
+          sha256sum "$out" > "$out.sha256"
+          ls -l "$out" "$out.sha256"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bin-${{ matrix.asset }}
+          path: |
+            hysteria-realm-server-linux-${{ matrix.asset }}
+            hysteria-realm-server-linux-${{ matrix.asset }}.sha256
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Resolve tag
+        id: ver
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ github.event.inputs.release_tag }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Publish to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          files: dist/*
+          generate_release_notes: true
+          fail_on_unmatched_files: true

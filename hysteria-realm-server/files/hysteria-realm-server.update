@@ -1,0 +1,137 @@
+#!/bin/sh
+# hysteria-realm-server-update
+# Detect the OpenWrt CPU architecture and download the matching prebuilt
+# binary built by this project's GitHub Actions CI.
+#
+# Usage:
+#   hysteria-realm-server-update [VERSION] [URL]
+#
+# VERSION : upstream release version (defaults to UCI 'version').
+# URL     : explicit download URL; bypasses all auto-detection.
+#
+# Resolution order for the URL:
+#   1. CLI URL argument
+#   2. UCI 'download_url' (manual override)
+#   3. https://github.com/<release_repo>/releases/download/v<VERSION>/<asset>
+#
+# Exit codes:
+#   0 success   2 unsupported arch   3 download failed   4 not an ELF   5 checksum mismatch
+
+. /lib/functions.sh 2>/dev/null
+
+BIN_PATH="/usr/bin/hysteria-realm-server"
+TMP_PATH="/tmp/hysteria-realm-server.download"
+TMP_SHA="/tmp/hysteria-realm-server.sha256"
+DEFAULT_REPO="yukiinagato/luci-hysteria-realm-server"
+
+log() { echo "[hysteria-realm-update] $*"; }
+
+config_load hysteria-realm-server 2>/dev/null
+config_get CFG_VERSION main version "1.0.1"
+config_get CFG_URL     main download_url ""
+config_get CFG_REPO    main release_repo "$DEFAULT_REPO"
+
+VERSION="${1:-$CFG_VERSION}"
+URL="${2:-$CFG_URL}"
+REPO="${CFG_REPO:-$DEFAULT_REPO}"
+
+# Map OpenWrt DISTRIB_ARCH (preferred) / uname -m to a release asset token.
+# Asset tokens must match the names produced by .github/workflows/release.yml.
+map_asset() {
+	local da="" m
+	[ -f /etc/openwrt_release ] && . /etc/openwrt_release 2>/dev/null
+	da="$DISTRIB_ARCH"
+	m="$(uname -m 2>/dev/null)"
+
+	case "$da" in
+		x86_64*)        echo amd64;             return ;;
+		i386*|i686*)    echo 386;               return ;;
+		aarch64*)       echo arm64;             return ;;
+		arm_cortex-a*|arm_*neon*|arm_*vfp*)
+		                echo armv7;             return ;;
+		arm_*)          echo armv5;             return ;;
+		mips64el_*)     echo mips64le_softfloat; return ;;
+		mips64_*)       echo mips64_softfloat;   return ;;
+		mipsel_*)       echo mipsle_softfloat;   return ;;
+		mips_*)         echo mips_softfloat;     return ;;
+		riscv64*)       echo riscv64;            return ;;
+	esac
+
+	# Fallback (note: uname cannot reliably tell mips endianness).
+	case "$m" in
+		x86_64|amd64)   echo amd64 ;;
+		i?86)           echo 386 ;;
+		aarch64|arm64)  echo arm64 ;;
+		armv7*)         echo armv7 ;;
+		armv6*|armv5*|arm) echo armv5 ;;
+		mips64el)       echo mips64le_softfloat ;;
+		mips64)         echo mips64_softfloat ;;
+		mipsel)         echo mipsle_softfloat ;;
+		mips)           echo mips_softfloat ;;
+		riscv64)        echo riscv64 ;;
+		*)              echo "" ;;
+	esac
+}
+
+fetch() {
+	# fetch <url> <dest>
+	local url="$1" dest="$2"
+	rm -f "$dest"
+	if command -v uclient-fetch >/dev/null 2>&1; then
+		uclient-fetch -q -O "$dest" "$url" 2>/dev/null || \
+		uclient-fetch --no-check-certificate -q -O "$dest" "$url" 2>/dev/null
+	elif command -v wget >/dev/null 2>&1; then
+		wget -q -O "$dest" "$url" 2>/dev/null
+	elif command -v curl >/dev/null 2>&1; then
+		curl -fsSL -o "$dest" "$url" 2>/dev/null
+	fi
+	[ -s "$dest" ]
+}
+
+ASSET=""
+if [ -z "$URL" ]; then
+	ASSET="$(map_asset)"
+	if [ -z "$ASSET" ]; then
+		log "ERROR: unsupported CPU '$(uname -m)' / arch '${DISTRIB_ARCH:-?}'."
+		log "Set 'download_url' in /etc/config/hysteria-realm-server to a self-built binary."
+		exit 2
+	fi
+	URL="https://github.com/${REPO}/releases/download/v${VERSION}/hysteria-realm-server-linux-${ASSET}"
+fi
+
+log "Architecture asset: ${ASSET:-<custom URL>}"
+log "Downloading: $URL"
+
+if ! fetch "$URL" "$TMP_PATH"; then
+	log "ERROR: download failed or produced an empty file."
+	rm -f "$TMP_PATH"
+	exit 3
+fi
+
+# Validate ELF magic (0x7f 'E' 'L' 'F').
+magic="$(dd if="$TMP_PATH" bs=1 count=4 2>/dev/null | hexdump -v -e '1/1 "%02x"' 2>/dev/null)"
+if [ "$magic" != "7f454c46" ]; then
+	log "ERROR: downloaded file is not an ELF executable (magic '$magic'); the URL may have returned an error page."
+	rm -f "$TMP_PATH"
+	exit 4
+fi
+
+# Optional SHA256 verification against the published .sha256 sidecar.
+if command -v sha256sum >/dev/null 2>&1 && fetch "${URL}.sha256" "$TMP_SHA"; then
+	expected="$(awk '{print $1}' "$TMP_SHA" 2>/dev/null)"
+	actual="$(sha256sum "$TMP_PATH" 2>/dev/null | awk '{print $1}')"
+	if [ -n "$expected" ] && [ "$expected" != "$actual" ]; then
+		log "ERROR: SHA256 mismatch (expected $expected, got $actual)."
+		rm -f "$TMP_PATH" "$TMP_SHA"
+		exit 5
+	fi
+	log "SHA256 verified."
+	rm -f "$TMP_SHA"
+else
+	log "Note: SHA256 sidecar unavailable; skipping checksum verification."
+fi
+
+chmod 0755 "$TMP_PATH"
+mv -f "$TMP_PATH" "$BIN_PATH"
+log "Installed $BIN_PATH ($(wc -c < "$BIN_PATH") bytes)"
+exit 0

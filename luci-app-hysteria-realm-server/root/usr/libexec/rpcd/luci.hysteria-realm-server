@@ -1,0 +1,192 @@
+#!/bin/sh
+# rpcd backend for luci-app-hysteria-realm-server
+# Exposes ubus object: luci.hysteria-realm-server
+. /usr/share/libubox/jshn.sh
+
+PROG="/usr/bin/hysteria-realm-server"
+UPDATER="/usr/libexec/hysteria-realm-server-update"
+INIT="/etc/init.d/hysteria-realm-server"
+CONF="hysteria-realm-server"
+
+ucget() { uci -q get "${CONF}.main.$1" 2>/dev/null; }
+
+# Mirror of map_asset() in hysteria-realm-server-update: OpenWrt arch -> token.
+map_arch() {
+	local da="" m
+	[ -f /etc/openwrt_release ] && . /etc/openwrt_release 2>/dev/null
+	da="$DISTRIB_ARCH"
+	m="$(uname -m 2>/dev/null)"
+	case "$da" in
+		x86_64*)        echo amd64;              return ;;
+		i386*|i686*)    echo 386;                return ;;
+		aarch64*)       echo arm64;              return ;;
+		arm_cortex-a*|arm_*neon*|arm_*vfp*) echo armv7; return ;;
+		arm_*)          echo armv5;              return ;;
+		mips64el_*)     echo mips64le_softfloat; return ;;
+		mips64_*)       echo mips64_softfloat;   return ;;
+		mipsel_*)       echo mipsle_softfloat;   return ;;
+		mips_*)         echo mips_softfloat;     return ;;
+		riscv64*)       echo riscv64;            return ;;
+	esac
+	case "$m" in
+		x86_64|amd64)   echo amd64 ;;
+		i?86)           echo 386 ;;
+		aarch64|arm64)  echo arm64 ;;
+		armv7*)         echo armv7 ;;
+		armv6*|armv5*|arm) echo armv5 ;;
+		mips64el)       echo mips64le_softfloat ;;
+		mips64)         echo mips64_softfloat ;;
+		mipsel)         echo mipsle_softfloat ;;
+		mips)           echo mips_softfloat ;;
+		riscv64)        echo riscv64 ;;
+		*)              echo "" ;;
+	esac
+}
+
+method_status() {
+	local pid running=0 installed=0 enabled=0 supported=0
+	local arch ver listen_addr listen_port tls_enabled bin_size=0
+
+	pid="$(pidof hysteria-realm-server 2>/dev/null | awk '{print $1}')"
+	[ -n "$pid" ] && running=1
+	[ -x "$PROG" ] && { installed=1; bin_size="$(wc -c < "$PROG" 2>/dev/null)"; }
+	"$INIT" enabled 2>/dev/null && enabled=1
+
+	arch="$(map_arch)"
+	[ -n "$arch" ] && supported=1
+
+	ver="$(ucget version)"
+	listen_addr="$(ucget listen_addr)"
+	listen_port="$(ucget listen_port)"
+	tls_enabled="$(ucget tls_enabled)"
+
+	json_init
+	json_add_boolean running "$running"
+	json_add_boolean installed "$installed"
+	json_add_boolean enabled "$enabled"
+	json_add_boolean supported "$supported"
+	json_add_string pid "${pid:-}"
+	json_add_string arch "$(uname -m 2>/dev/null)"
+	json_add_string asset_arch "${arch:-}"
+	json_add_string version "${ver:-}"
+	json_add_string listen_addr "${listen_addr:-}"
+	json_add_string listen_port "${listen_port:-}"
+	json_add_string tls_enabled "${tls_enabled:-0}"
+	json_add_int bin_size "${bin_size:-0}"
+	json_dump
+}
+
+method_service() {
+	local action
+	json_load "$1"
+	json_get_var action action
+
+	local rc=1 out=""
+	case "$action" in
+		start|stop|restart|reload|enable|disable)
+			out="$("$INIT" "$action" 2>&1)"; rc=$?
+			;;
+		*)
+			out="invalid action"
+			;;
+	esac
+	json_init
+	json_add_int code "$rc"
+	json_add_string stdout "$out"
+	json_dump
+}
+
+method_install() {
+	local url version
+	json_load "$1"
+	json_get_var url url
+	json_get_var version version
+
+	local out rc
+	out="$("$UPDATER" "${version}" "${url}" 2>&1)"; rc=$?
+	json_init
+	json_add_int code "$rc"
+	json_add_string stdout "$out"
+	json_dump
+}
+
+method_gen_token() {
+	local tok
+	tok="$(openssl rand -hex 24 2>/dev/null)"
+	[ -z "$tok" ] && tok="$(head -c 24 /dev/urandom 2>/dev/null | hexdump -v -e '1/1 "%02x"')"
+	json_init
+	json_add_string token "$tok"
+	json_dump
+}
+
+method_gen_cert() {
+	local cn days cert key dir rc out
+	json_load "$1"
+	json_get_var cn cn
+	json_get_var days days
+	[ -z "$cn" ] && cn="hysteria-realm-server"
+	[ -z "$days" ] && days=3650
+
+	cert="$(ucget cert_path)"; [ -z "$cert" ] && cert="/etc/hysteria-realm-server/cert.pem"
+	key="$(ucget key_path)";  [ -z "$key" ]  && key="/etc/hysteria-realm-server/key.pem"
+	dir="$(dirname "$cert")"
+	mkdir -p "$dir" "$(dirname "$key")"
+
+	out="$(openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 \
+		-nodes -keyout "$key" -out "$cert" -days "$days" \
+		-subj "/CN=${cn}" -addext "subjectAltName=DNS:${cn},IP:127.0.0.1" 2>&1)"
+	rc=$?
+	# Some openssl-util builds lack -addext; retry without it.
+	if [ "$rc" != 0 ]; then
+		out="$(openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 \
+			-nodes -keyout "$key" -out "$cert" -days "$days" -subj "/CN=${cn}" 2>&1)"
+		rc=$?
+	fi
+	chmod 0600 "$key" 2>/dev/null
+
+	json_init
+	json_add_int code "$rc"
+	json_add_string cert "$cert"
+	json_add_string key "$key"
+	json_add_string stdout "$out"
+	json_dump
+}
+
+method_logs() {
+	local lines
+	json_load "$1"
+	json_get_var lines lines
+	[ -z "$lines" ] && lines=200
+	case "$lines" in (*[!0-9]*) lines=200 ;; esac
+
+	local out
+	out="$(logread -e hysteria-realm-server 2>/dev/null | tail -n "$lines")"
+	json_init
+	json_add_string log "$out"
+	json_dump
+}
+
+case "$1" in
+	list)
+		json_init
+		json_add_object "status"; json_close_object
+		json_add_object "service"; json_add_string "action" ""; json_close_object
+		json_add_object "install"; json_add_string "url" ""; json_add_string "version" ""; json_close_object
+		json_add_object "gen_token"; json_close_object
+		json_add_object "gen_cert"; json_add_string "cn" ""; json_add_int "days" 0; json_close_object
+		json_add_object "logs"; json_add_int "lines" 0; json_close_object
+		json_dump
+		;;
+	call)
+		input="$(cat)"
+		case "$2" in
+			status)    method_status ;;
+			service)   method_service "$input" ;;
+			install)   method_install "$input" ;;
+			gen_token) method_gen_token ;;
+			gen_cert)  method_gen_cert "$input" ;;
+			logs)      method_logs "$input" ;;
+			*)         echo '{}' ;;
+		esac
+		;;
+esac

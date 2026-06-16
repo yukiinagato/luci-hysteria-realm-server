@@ -1,0 +1,301 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Project-Id-Version: luci-app-hysteria-realm-server\n"
+"Language: zh_Hans\n"
+
+# --- Menu ---
+msgid "Hysteria Realm Server"
+msgstr "Hysteria Realm 服务器"
+
+msgid "Overview"
+msgstr "概览"
+
+msgid "Settings"
+msgstr "设置"
+
+msgid "TLS Certificate"
+msgstr "TLS 证书"
+
+msgid "Logs"
+msgstr "日志"
+
+# --- Overview ---
+msgid "Please wait…"
+msgstr "请稍候…"
+
+msgid "Operation completed successfully."
+msgstr "操作成功完成。"
+
+msgid "Operation failed."
+msgstr "操作失败。"
+
+msgid "Downloading core…"
+msgstr "正在下载核心…"
+
+msgid "Detecting CPU architecture and downloading the matching binary from GitHub. This may take a minute."
+msgstr "正在检测 CPU 架构并从 GitHub 下载匹配的二进制文件,可能需要一分钟。"
+
+msgid "Core binary installed successfully."
+msgstr "核心二进制文件安装成功。"
+
+msgid "Failed to download the core binary (code %s)."
+msgstr "下载核心二进制文件失败(代码 %s)。"
+
+msgid "Collecting data…"
+msgstr "正在收集数据…"
+
+msgid "Running"
+msgstr "运行中"
+
+msgid "Stopped"
+msgstr "已停止"
+
+msgid "Service"
+msgstr "服务"
+
+msgid "Boot autostart"
+msgstr "开机自启"
+
+msgid "Enabled"
+msgstr "已启用"
+
+msgid "Disabled"
+msgstr "已禁用"
+
+msgid "Core binary"
+msgstr "核心二进制"
+
+msgid "Installed"
+msgstr "已安装"
+
+msgid "Not installed"
+msgstr "未安装"
+
+msgid "CPU / asset"
+msgstr "CPU / 资源包"
+
+msgid "(unsupported CPU — set a custom URL)"
+msgstr "(不支持的 CPU——请填自定义地址)"
+
+msgid "Listen"
+msgstr "监听"
+
+msgid "Rendezvous server for the Hysteria 2 P2P (Realms) feature. It coordinates UDP hole punching so you can host Hysteria servers behind NAT without a public IP or port forwarding."
+msgstr "Hysteria 2 P2P(Realms)功能的会合服务器。它协调 UDP 打洞,使你无需公网 IP 或端口转发即可在 NAT 后方部署 Hysteria 服务器。"
+
+msgid "Status"
+msgstr "状态"
+
+msgid "Service control"
+msgstr "服务控制"
+
+msgid "Start"
+msgstr "启动"
+
+msgid "Stop"
+msgstr "停止"
+
+msgid "Restart"
+msgstr "重启"
+
+msgid "Enable autostart"
+msgstr "启用自启"
+
+msgid "Disable autostart"
+msgstr "禁用自启"
+
+msgid "Starting service…"
+msgstr "正在启动服务…"
+
+msgid "Stopping service…"
+msgstr "正在停止服务…"
+
+msgid "Restarting service…"
+msgstr "正在重启服务…"
+
+msgid "Enabling…"
+msgstr "正在启用…"
+
+msgid "Disabling…"
+msgstr "正在禁用…"
+
+msgid "Download / Update core"
+msgstr "下载 / 更新核心"
+
+msgid "Download or update the core binary matching your router CPU, built by this project's GitHub Actions CI for all common OpenWrt architectures (x86_64, arm64, armv7/v5, mips/mipsel, mips64, riscv64, …)."
+msgstr "下载或更新与你路由器 CPU 匹配的核心二进制,由本项目的 GitHub Actions CI 为所有常见 OpenWrt 架构构建(x86_64、arm64、armv7/v5、mips/mipsel、mips64、riscv64 等)。"
+
+msgid "Connection example"
+msgstr "对接配置示例"
+
+msgid "Paste the matching block into your Hysteria 2 config. Replace the public IP/domain with how clients reach this router."
+msgstr "将对应代码块粘贴到你的 Hysteria 2 配置中。请将公网 IP/域名替换为客户端访问本路由器的地址。"
+
+msgid "Server side"
+msgstr "服务端"
+
+msgid "Client side"
+msgstr "客户端"
+
+msgid "No token is set yet. Generate one in Settings before starting the service."
+msgstr "尚未设置 token。请先在“设置”中生成,再启动服务。"
+
+# --- Settings ---
+msgid "Failed to generate a token."
+msgstr "生成 token 失败。"
+
+msgid "A new random token was generated. Remember to Save & Apply."
+msgstr "已生成新的随机 token。请记得点击“保存并应用”。"
+
+msgid "Generate"
+msgstr "生成"
+
+msgid "Hysteria Realm Server — Settings"
+msgstr "Hysteria Realm 服务器 — 设置"
+
+msgid "Configure the rendezvous server. Changes take effect after Save & Apply (the service restarts automatically)."
+msgstr "配置会合服务器。更改在“保存并应用”后生效(服务会自动重启)。"
+
+msgid "General"
+msgstr "常规"
+
+msgid "Limits"
+msgstr "限额"
+
+msgid "Advanced"
+msgstr "高级"
+
+msgid "Master switch for the service."
+msgstr "服务总开关。"
+
+msgid "Listen address"
+msgstr "监听地址"
+
+msgid "Bind address. Use 0.0.0.0 for all interfaces."
+msgstr "绑定地址。使用 0.0.0.0 表示所有网络接口。"
+
+msgid "Listen port"
+msgstr "监听端口"
+
+msgid "TCP port for the HTTP/HTTPS rendezvous API."
+msgstr "HTTP/HTTPS 会合 API 使用的 TCP 端口。"
+
+msgid "Shared token"
+msgstr "共享 token"
+
+msgid "Bearer token required for realm registration and connection. Both the Hysteria server and clients must use the same value. REQUIRED."
+msgstr "用于 realm 注册与连接的 Bearer token。Hysteria 服务端与客户端必须使用相同的值。必填。"
+
+msgid "Auto-open firewall"
+msgstr "自动开放防火墙"
+
+msgid "Automatically add an input ACCEPT rule on the WAN zone for the listen port. Disable if you manage the firewall manually."
+msgstr "自动在 WAN 区域为监听端口添加 input ACCEPT 规则。若你手动管理防火墙请关闭此项。"
+
+msgid "Max realms"
+msgstr "最大 realm 数"
+
+msgid "Maximum total number of registered realms. 0 disables the limit."
+msgstr "已注册 realm 的最大总数。0 表示不限制。"
+
+msgid "Max realms per IP"
+msgstr "每 IP 最大 realm 数"
+
+msgid "Maximum realms per client IP. 0 disables the limit."
+msgstr "每个客户端 IP 的最大 realm 数。0 表示不限制。"
+
+msgid "Debug logging"
+msgstr "调试日志"
+
+msgid "Enable verbose logs for registration, sessions and punches."
+msgstr "为注册、会话和打洞过程启用详细日志。"
+
+msgid "Trusted proxy header"
+msgstr "可信代理头"
+
+msgid "Header to read the real client IP from when behind a trusted reverse proxy/CDN (e.g. X-Forwarded-For, CF-Connecting-IP). Leave empty if not proxied — enabling it on a directly-exposed server lets clients spoof their IP."
+msgstr "位于可信反向代理/CDN 后方时,用于读取真实客户端 IP 的头部(如 X-Forwarded-For、CF-Connecting-IP)。未使用代理请留空——在直接暴露的服务器上启用会让客户端伪造 IP。"
+
+msgid "Realm name pattern"
+msgstr "Realm 名称正则"
+
+msgid "Regular expression that realm names must match."
+msgstr "realm 名称必须匹配的正则表达式。"
+
+msgid "Core version"
+msgstr "核心版本"
+
+msgid "Upstream release version to download (e.g. 1.0.1). Must match a tag published by the release repository."
+msgstr "要下载的上游发布版本(如 1.0.1)。必须与发布仓库已发布的标签一致。"
+
+msgid "Release repository"
+msgstr "发布仓库"
+
+msgid "GitHub repository (owner/name) that hosts the CI-built per-architecture binaries."
+msgstr "托管 CI 构建的各架构二进制的 GitHub 仓库(owner/name)。"
+
+msgid "Custom download URL"
+msgstr "自定义下载地址"
+
+msgid "Override the full binary download URL (highest priority). Use it only for CPUs without a published binary — point it to a self-compiled binary. Leave empty for auto-detection."
+msgstr "覆盖完整的二进制下载地址(最高优先级)。仅用于没有已发布二进制的 CPU——指向你自行编译的二进制。留空则自动检测。"
+
+# --- TLS ---
+msgid "Serve the rendezvous API over HTTPS. When TLS is disabled the server runs plain HTTP — fine behind another TLS-terminating proxy, but not recommended for direct exposure."
+msgstr "通过 HTTPS 提供会合 API。禁用 TLS 时服务以明文 HTTP 运行——位于其他 TLS 终止代理后方时尚可,但不建议直接暴露。"
+
+msgid "Enable TLS"
+msgstr "启用 TLS"
+
+msgid "Use the certificate and key below. The service falls back to HTTP if either file is missing."
+msgstr "使用下方的证书和密钥。若任一文件缺失,服务将回退为 HTTP。"
+
+msgid "Certificate path"
+msgstr "证书路径"
+
+msgid "Private key path"
+msgstr "私钥路径"
+
+msgid "Generating certificate…"
+msgstr "正在生成证书…"
+
+msgid "Creating a self-signed ECDSA certificate…"
+msgstr "正在创建自签名 ECDSA 证书…"
+
+msgid "Certificate generated at %s. Enable TLS above, then Save & Apply."
+msgstr "证书已生成于 %s。请在上方启用 TLS,然后“保存并应用”。"
+
+msgid "Certificate generation failed."
+msgstr "证书生成失败。"
+
+msgid "Generate self-signed certificate"
+msgstr "生成自签名证书"
+
+msgid "Quick self-signed certificate"
+msgstr "快速自签名证书"
+
+msgid "Generates a certificate/key pair at the configured paths. Self-signed certificates require clients to disable certificate verification (insecure: true in the Hysteria realm config)."
+msgstr "在配置的路径生成证书/密钥对。自签名证书需要客户端关闭证书校验(在 Hysteria realm 配置中设置 insecure: true)。"
+
+msgid "Common name (CN)"
+msgstr "通用名称(CN)"
+
+msgid "Valid days"
+msgstr "有效天数"
+
+# --- Logs ---
+msgid "Service logs"
+msgstr "服务日志"
+
+msgid "Live output captured from the service via the system log (logread). Updates every 5 seconds."
+msgstr "通过系统日志(logread)实时抓取的服务输出。每 5 秒更新一次。"
+
+msgid "Refresh now"
+msgstr "立即刷新"
+
+msgid "Auto-scroll to bottom"
+msgstr "自动滚动到底部"
+
+msgid "(no log entries yet — start the service to produce logs)"
+msgstr "(暂无日志——启动服务后即可产生日志)"

@@ -1,0 +1,17 @@
+{
+	"luci-app-hysteria-realm-server": {
+		"description": "Grant UCI and ubus access to Hysteria Realm Server",
+		"read": {
+			"ubus": {
+				"luci.hysteria-realm-server": [ "status", "logs" ]
+			},
+			"uci": [ "hysteria-realm-server" ]
+		},
+		"write": {
+			"ubus": {
+				"luci.hysteria-realm-server": [ "service", "install", "gen_token", "gen_cert" ]
+			},
+			"uci": [ "hysteria-realm-server" ]
+		}
+	}
+}
