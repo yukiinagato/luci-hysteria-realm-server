@@ -136,6 +136,17 @@ opkg install ./luci-app-hysteria-realm-server_*_all.ipk
 4. (可选)在 **TLS** 一键生成自签名证书并启用。
 5. 回到 **概览** 启动服务、启用自启;复制「对接配置示例」到 Hysteria 2 配置中。
 
+### IPv6 与 MAP-E(日本线路)
+
+- **监听**:默认 `listen_addr` 为 `::`,即 IPv4+IPv6 双栈监听;纯 IPv6 线路也能正常工作。仅需 IPv4 时改为 `0.0.0.0`。监听地址会自动按 Go 语法格式化(IPv6 字面量自动加 `[]`)。
+- **双栈**:面板会同时探测并列出 IPv4 / IPv6 接入地址,示例默认优先填 IPv6(无 NAT、无端口限制,最可靠)。建议用同时配置 A + AAAA 记录的域名作为 `server`。
+- **MAP-E / DS-Lite(日本常见,如 v6プラス、OCN バーチャルコネクト、transix 等)**:这类 IPv4-over-IPv6 线路的**入站 IPv4 端口受限**(MAP-E 只有运营商按 PSID 分配的少量端口)甚至完全不可用(DS-Lite)。
+  - 面板会自动检测并给出醒目提示,**强烈建议走 IPv6**:会合点用 IPv6 暴露,客户端用 IPv6 连接,完全绕开端口限制。
+  - **MAP-E 端口自动识别**:若是 MAP-E,面板会直接读取 OpenWrt `map` 协议已算好的端口集(`/tmp/map-*.rules` 中的 `RULE_*_PORTSETS`)和共享 IPv4,列出你被分配的端口范围,并校验当前监听端口是否落在其中(不在则提示并给出第一个可用端口)。
+  - 面板还内置 **RFC 7597 GMA 端口计算器**:输入偏移 a、PSID 长度 k、PSID 即可算出端口集(默认 a=4、k=8 对应 JPIX v6プラス),自动检测失败时也能手动核对。
+  - 若要用 IPv4,把「监听端口」设到上述范围之内即可;否则外部无法连入。
+  - 防火墙规则默认同时覆盖 IPv4/IPv6(family any),IPv6 入站即可放行。
+
 ### 安全提示
 
 - token 是唯一鉴权凭证,请使用足够强度的随机值并妥善保管。
@@ -216,6 +227,17 @@ manually from the Actions tab. The download source repo is the UCI option
 `release_repo` (default `yukiinagato/luci-hysteria-realm-server`). For a CPU not
 in the matrix, set a **Custom download URL** in Settings. You can also build the
 ipk locally: `tools/build-ipk.sh 1.0.1-1 ./out`.
+
+### IPv6 & MAP-E (Japanese lines)
+
+- **Listening**: `listen_addr` defaults to `::` — dual-stack IPv4+IPv6; works on IPv6-only lines too. Set `0.0.0.0` for IPv4-only. The address is auto-formatted to Go syntax (IPv6 literals are bracketed).
+- **Dual-stack**: the panel detects and lists both IPv4/IPv6 endpoints and prefers IPv6 in the auto-filled example (no NAT, no port limits). Prefer a domain with both A and AAAA records as the `server`.
+- **MAP-E / DS-Lite** (common in Japan — v6 plus, OCN Virtual Connect, transix, …): inbound IPv4 is **port-restricted** (MAP-E gives only a small ISP-assigned port set per PSID) or unavailable (DS-Lite).
+  - The panel auto-detects this and shows a prominent warning. **Use IPv6**: expose the rendezvous over IPv6 and connect clients over IPv6 to bypass the port limits entirely.
+  - **Automatic MAP-E port detection**: on MAP-E the panel reads the port set already computed by OpenWrt's `map` proto (`RULE_*_PORTSETS` in `/tmp/map-*.rules`) plus the shared IPv4, lists your assigned ranges, and checks whether the current listen port is inside them (suggesting the first valid port if not).
+  - A built-in **RFC 7597 GMA port calculator** (offset a, PSID length k, PSID; defaults a=4/k=8 for JPIX v6plus) lets you verify ranges manually if auto-detection fails.
+  - To use IPv4, set the listen port inside those ranges; otherwise external clients cannot reach it.
+  - The firewall rule covers both IPv4 and IPv6 (family any), so IPv6 inbound is allowed.
 
 ### Security notes
 

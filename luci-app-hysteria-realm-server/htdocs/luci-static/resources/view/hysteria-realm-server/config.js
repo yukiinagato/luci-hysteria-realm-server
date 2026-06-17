@@ -57,13 +57,13 @@ return view.extend({
 		o.rmempty = false;
 
 		o = s.taboption('general', form.Value, 'listen_addr', _('Listen address'),
-			_('Bind address. Use 0.0.0.0 for all interfaces.'));
+			_('Bind address. "::" = all interfaces, dual-stack IPv4+IPv6 (recommended); "0.0.0.0" = IPv4 only. Keep "::" on IPv6-only / MAP-E / DS-Lite lines so clients can reach it over IPv6.'));
 		o.datatype = 'ipaddr';
-		o.placeholder = '0.0.0.0';
+		o.placeholder = '::';
 		o.rmempty = false;
 
 		o = s.taboption('general', form.Value, 'listen_port', _('Listen port'),
-			_('TCP port for the HTTP/HTTPS rendezvous API.'));
+			_('TCP port for the HTTP/HTTPS rendezvous API. On MAP-E / DS-Lite lines (common in Japan), inbound IPv4 is limited to ISP-assigned ports — prefer IPv6, or set this to a port inside your allowed MAP-E range.'));
 		o.datatype = 'port';
 		o.placeholder = '8443';
 		o.rmempty = false;
@@ -103,7 +103,7 @@ return view.extend({
 
 		o = s.taboption('advanced', form.Value, 'version', _('Core version'),
 			_('Plugin release tag (without v) to download binaries from. Must match a release published by the release repository.'));
-		o.placeholder = '1.0.2';
+		o.placeholder = '1.1.0';
 
 		o = s.taboption('advanced', form.Value, 'release_repo', _('Release repository'),
 			_('GitHub repository (owner/name) that hosts the CI-built per-architecture binaries.'));

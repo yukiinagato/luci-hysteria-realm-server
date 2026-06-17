@@ -3,7 +3,7 @@
 		"description": "Grant UCI and ubus access to Hysteria Realm Server",
 		"read": {
 			"ubus": {
-				"luci.hysteria-realm-server": [ "status", "logs", "ipaddr" ]
+				"luci.hysteria-realm-server": [ "status", "logs", "ipaddr", "mape" ]
 			},
 			"uci": [ "hysteria-realm-server" ]
 		},

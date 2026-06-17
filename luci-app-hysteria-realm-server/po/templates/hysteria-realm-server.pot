@@ -131,13 +131,70 @@ msgstr ""
 msgid "Connection example"
 msgstr ""
 
-msgid "The server address below is auto-filled from this router. Paste the matching block into your Hysteria 2 config; adjust the address if clients reach you via a different IP or domain."
+msgid "The server address below is auto-filled from this router (IPv6 preferred). Paste the matching block into your Hysteria 2 config; adjust the address if clients reach you via a different IP or domain."
 msgstr ""
 
-msgid "The WAN address %s is private/NAT — external clients need port forwarding, a public IP, or DDNS."
+msgid "Available endpoints"
+msgstr ""
+
+msgid "The WAN IPv4 address %s is private/NAT — external clients need port forwarding, a public IP, or DDNS."
 msgstr ""
 
 msgid "Only a LAN address was found (%s); use the address external clients actually reach this router by."
+msgstr ""
+
+msgid "Detected %s: inbound IPv4 on this line is port-restricted or unavailable. Use the IPv6 endpoint below. To use IPv4 you must set the listen port to one inside your ISP-assigned MAP-E port range."
+msgstr ""
+
+msgid "IPv4-over-IPv6"
+msgstr ""
+
+msgid "Dual-stack detected. For clients on either protocol, point a domain with both A and AAAA records at this router and use that as the server."
+msgstr ""
+
+msgid "MAP-E / port-restricted IPv4"
+msgstr ""
+
+msgid "Shared IPv4 address: %s"
+msgstr ""
+
+msgid "ISP-assigned IPv4 ports (auto-detected)"
+msgstr ""
+
+msgid "The listen port %s is within your assigned ports — IPv4 inbound is OK."
+msgstr ""
+
+msgid "The listen port %s is NOT within your assigned ports; IPv4 inbound will fail. Use port %s, or use IPv6."
+msgstr ""
+
+msgid "Could not auto-detect the assigned ports. Use the calculator below with the parameters from your ISP (defaults match JPIX v6plus: a=4, k=8)."
+msgstr ""
+
+msgid "Port calculator (RFC 7597 GMA)"
+msgstr ""
+
+msgid "Offset a"
+msgstr ""
+
+msgid "PSID length k"
+msgstr ""
+
+msgid "Compute"
+msgstr ""
+
+msgid "Allowed ports: %s"
+msgstr ""
+
+msgid "Listen port %s fits these parameters."
+msgstr ""
+
+msgid "Listen port %s does NOT fit; first allowed port is %s."
+msgstr ""
+
+msgid "Enter PSID (and adjust a / k) to compute the allowed ports."
+msgstr ""
+
+msgid "No valid ports for these parameters."
 msgstr ""
 
 msgid "Server side"
@@ -180,13 +237,13 @@ msgstr ""
 msgid "Listen address"
 msgstr ""
 
-msgid "Bind address. Use 0.0.0.0 for all interfaces."
+msgid "Bind address. \"::\" = all interfaces, dual-stack IPv4+IPv6 (recommended); \"0.0.0.0\" = IPv4 only. Keep \"::\" on IPv6-only / MAP-E / DS-Lite lines so clients can reach it over IPv6."
 msgstr ""
 
 msgid "Listen port"
 msgstr ""
 
-msgid "TCP port for the HTTP/HTTPS rendezvous API."
+msgid "TCP port for the HTTP/HTTPS rendezvous API. On MAP-E / DS-Lite lines (common in Japan), inbound IPv4 is limited to ISP-assigned ports — prefer IPv6, or set this to a port inside your allowed MAP-E range."
 msgstr ""
 
 msgid "Shared token"

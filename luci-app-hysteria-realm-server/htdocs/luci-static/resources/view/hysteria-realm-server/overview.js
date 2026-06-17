@@ -32,6 +32,46 @@ var callIpaddr = rpc.declare({
 	expect: {}
 });
 
+var callMape = rpc.declare({
+	object: 'luci.hysteria-realm-server',
+	method: 'mape',
+	expect: {}
+});
+
+// RFC 7597 GMA: a port is [ i (a bits) ][ PSID (k bits) ][ j (m bits) ], with
+// m = 16 - a - k. Block index i = 1 .. 2^a-1 (i=0 = system ports, excluded).
+function mapeRanges(a, k, psid) {
+	var m = 16 - a - k;
+	if (a < 0 || k < 0 || m < 0 || psid < 0 || psid >= (1 << k)) return [];
+	var size = 1 << m, out = [];
+	for (var i = 1; i < (1 << a); i++) {
+		var base = (i << (k + m)) | (psid << m);
+		out.push([ base, base + size - 1 ]);
+	}
+	return out;
+}
+
+function portInRanges(p, ranges) {
+	for (var i = 0; i < ranges.length; i++)
+		if (p >= ranges[i][0] && p <= ranges[i][1]) return true;
+	return false;
+}
+
+function fmtRanges(ranges) {
+	return ranges.map(function(r) {
+		return r[0] === r[1] ? ('' + r[0]) : (r[0] + '-' + r[1]);
+	}).join(', ');
+}
+
+// Parse "8000-8015 12096-12111" -> [[8000,8015],[12096,12111]]
+function parsePortsets(s) {
+	if (!s) return [];
+	return s.trim().split(/\s+/).filter(Boolean).map(function(t) {
+		var p = t.split('-');
+		return [ parseInt(p[0], 10), parseInt(p[1] != null ? p[1] : p[0], 10) ];
+	}).filter(function(r) { return !isNaN(r[0]) && !isNaN(r[1]); });
+}
+
 function isPrivateV4(ip) {
 	var m = /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/.exec(ip || '');
 	if (!m) return false;
@@ -96,8 +136,84 @@ return view.extend({
 	load: function() {
 		return Promise.all([
 			uci.load('hysteria-realm-server'),
-			callIpaddr().catch(function() { return {}; })
+			callIpaddr().catch(function() { return {}; }),
+			callMape().catch(function() { return {}; })
 		]);
+	},
+
+	renderMapeSection: function(mape, v4, listenPort) {
+		mape = mape || {};
+		var auto = parsePortsets(mape.ports || '');
+		var ip4 = mape.ip4 || v4 || '';
+		var nodes = [ E('h3', {}, _('MAP-E / port-restricted IPv4')) ];
+
+		if (ip4)
+			nodes.push(E('p', {}, _('Shared IPv4 address: %s').format(ip4)));
+
+		if (auto.length) {
+			nodes.push(E('p', {}, [
+				E('strong', {}, _('ISP-assigned IPv4 ports (auto-detected)') + ': '),
+				fmtRanges(auto)
+			]));
+			if (!isNaN(listenPort)) {
+				if (portInRanges(listenPort, auto))
+					nodes.push(E('p', { 'style': 'color:#3fb618' },
+						_('The listen port %s is within your assigned ports — IPv4 inbound is OK.').format(listenPort)));
+				else
+					nodes.push(E('p', { 'style': 'color:#d9534f' },
+						_('The listen port %s is NOT within your assigned ports; IPv4 inbound will fail. Use port %s, or use IPv6.').format(listenPort, auto[0][0])));
+			}
+		} else {
+			nodes.push(E('p', {}, _('Could not auto-detect the assigned ports. Use the calculator below with the parameters from your ISP (defaults match JPIX v6plus: a=4, k=8).')));
+		}
+
+		// --- RFC 7597 GMA calculator ---
+		var aIn = E('input', { 'type': 'number', 'class': 'cbi-input-text', 'value': '4', 'style': 'width:70px' });
+		var kIn = E('input', { 'type': 'number', 'class': 'cbi-input-text', 'value': '8', 'style': 'width:70px' });
+		var pIn = E('input', { 'type': 'number', 'class': 'cbi-input-text', 'placeholder': 'PSID', 'style': 'width:90px' });
+		var outDiv = E('div', { 'style': 'margin-top:8px;font-family:monospace;white-space:pre-wrap' }, '');
+
+		// Pre-derive PSID from the first auto range (assuming default a=4,k=8).
+		if (auto.length) {
+			var m0 = 16 - 4 - 8;
+			pIn.value = '' + ((auto[0][0] >> m0) & ((1 << 8) - 1));
+		}
+
+		var calcBtn = E('button', {
+			'class': 'btn cbi-button cbi-button-action',
+			'click': function() {
+				var a = parseInt(aIn.value, 10), k = parseInt(kIn.value, 10), psid = parseInt(pIn.value, 10);
+				if (isNaN(a) || isNaN(k) || isNaN(psid)) {
+					outDiv.textContent = _('Enter PSID (and adjust a / k) to compute the allowed ports.');
+					return;
+				}
+				var r = mapeRanges(a, k, psid);
+				if (!r.length) {
+					outDiv.textContent = _('No valid ports for these parameters.');
+					return;
+				}
+				var txt = _('Allowed ports: %s').format(fmtRanges(r));
+				if (!isNaN(listenPort)) {
+					txt += '\n' + (portInRanges(listenPort, r)
+						? _('Listen port %s fits these parameters.').format(listenPort)
+						: _('Listen port %s does NOT fit; first allowed port is %s.').format(listenPort, r[0][0]));
+				}
+				outDiv.textContent = txt;
+			}
+		}, _('Compute'));
+
+		nodes.push(E('div', { 'style': 'margin-top:10px' }, [
+			E('strong', {}, _('Port calculator (RFC 7597 GMA)')),
+			E('div', { 'style': 'display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:6px' }, [
+				E('label', {}, _('Offset a')), aIn,
+				E('label', {}, _('PSID length k')), kIn,
+				E('label', {}, 'PSID'), pIn,
+				calcBtn
+			]),
+			outDiv
+		]));
+
+		return E('div', { 'class': 'cbi-section' }, nodes);
 	},
 
 	renderStatus: function(st) {
@@ -142,21 +258,35 @@ return view.extend({
 		var tls = uci.get('hysteria-realm-server', 'main', 'tls_enabled') === '1';
 		var scheme = tls ? 'https' : 'http';
 
-		// Auto-detect the address clients use to reach this router.
+		// Auto-detect the address(es) clients use to reach this router.
 		var ip = (data && data[1]) || {};
-		var host, hostNote = '';
-		if (ip.wan4) {
-			host = ip.wan4;
-			if (isPrivateV4(ip.wan4))
-				hostNote = _('The WAN address %s is private/NAT — external clients need port forwarding, a public IP, or DDNS.').format(ip.wan4);
-		} else if (ip.wan6) {
-			host = '[' + ip.wan6 + ']';
-		} else if (ip.lan4) {
-			host = ip.lan4;
-			hostNote = _('Only a LAN address was found (%s); use the address external clients actually reach this router by.').format(ip.lan4);
-		} else {
-			host = 'YOUR_PUBLIC_IP_OR_DOMAIN';
-		}
+		var v4 = ip.wan4 || '';
+		var v6 = ip.wan6 || '';
+		var lan4 = ip.lan4 || '';
+		var restricted = (ip.v4restricted === true || ip.v4restricted === 1 || ip.v4restricted === '1');
+		var tech = ip.v4tech || '';
+		var mape = (data && data[2]) || {};
+
+		// IPv6 is preferred: no NAT, no MAP-E port limits — most reliable for a
+		// rendezvous endpoint. Fall back to IPv4, then LAN, then a placeholder.
+		var endpoints = [];
+		if (v6) endpoints.push('[' + v6 + ']');
+		if (v4) endpoints.push(v4);
+		var host = endpoints.length ? endpoints[0] : (lan4 || 'YOUR_PUBLIC_IP_OR_DOMAIN');
+
+		var hostNotes = [];
+		if (restricted)
+			hostNotes.push({ warn: true, text:
+				_('Detected %s: inbound IPv4 on this line is port-restricted or unavailable. Use the IPv6 endpoint below. To use IPv4 you must set the listen port to one inside your ISP-assigned MAP-E port range.').format(tech || _('IPv4-over-IPv6')) });
+		if (v4 && isPrivateV4(v4) && !restricted)
+			hostNotes.push({ warn: true, text:
+				_('The WAN IPv4 address %s is private/NAT — external clients need port forwarding, a public IP, or DDNS.').format(v4) });
+		if (!v4 && !v6 && lan4)
+			hostNotes.push({ warn: true, text:
+				_('Only a LAN address was found (%s); use the address external clients actually reach this router by.').format(lan4) });
+		if (v4 && v6)
+			hostNotes.push({ warn: false, text:
+				_('Dual-stack detected. For clients on either protocol, point a domain with both A and AAAA records at this router and use that as the server.') });
 
 		var statusBox = E('div', {}, E('em', {}, _('Collecting data…')));
 
@@ -223,8 +353,11 @@ return view.extend({
 
 			E('div', { 'class': 'cbi-section' }, [
 				E('h3', {}, _('Connection example')),
-				E('p', {}, _('The server address below is auto-filled from this router. Paste the matching block into your Hysteria 2 config; adjust the address if clients reach you via a different IP or domain.')),
-				hostNote ? E('p', { 'style': 'color:#d9534f' }, hostNote) : '',
+				E('p', {}, _('The server address below is auto-filled from this router (IPv6 preferred). Paste the matching block into your Hysteria 2 config; adjust the address if clients reach you via a different IP or domain.')),
+				endpoints.length ? E('p', {}, [ E('strong', {}, _('Available endpoints') + ': '), endpoints.join('   ') ]) : '',
+				E('div', {}, hostNotes.map(function(n) {
+					return E('p', { 'style': 'margin:4px 0;color:' + (n.warn ? '#d9534f' : '#666') }, n.text);
+				})),
 				E('div', { 'style': 'display:flex;gap:12px;flex-wrap:wrap' }, [
 					E('div', { 'style': 'flex:1;min-width:280px' }, [
 						E('strong', {}, _('Server side')),
@@ -237,7 +370,10 @@ return view.extend({
 				]),
 				token ? '' : E('p', { 'style': 'color:#d9534f' },
 					_('No token is set yet. Generate one in Settings before starting the service.'))
-			])
+			]),
+
+			(restricted || (mape.ports && mape.ports.trim()))
+				? self.renderMapeSection(mape, v4, parseInt(port, 10)) : ''
 		]);
 	},
 

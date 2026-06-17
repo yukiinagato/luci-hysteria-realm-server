@@ -27,7 +27,7 @@ DEFAULT_REPO="yukiinagato/luci-hysteria-realm-server"
 log() { echo "[hysteria-realm-update] $*"; }
 
 config_load hysteria-realm-server 2>/dev/null
-config_get CFG_VERSION main version "1.0.3"
+config_get CFG_VERSION main version "1.1.0"
 config_get CFG_URL     main download_url ""
 config_get CFG_REPO    main release_repo "$DEFAULT_REPO"
 

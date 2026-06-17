@@ -55,6 +55,21 @@ fw_add() {
 # ---------------------------------------------------------------------------
 # Make sure the binary is present; try to download it if missing.
 # ---------------------------------------------------------------------------
+# Build a Go-style listen address, bracketing IPv6 literals.
+#   ""        -> :PORT        (all interfaces, dual-stack)
+#   ::        -> [::]:PORT    (all interfaces, dual-stack)
+#   2001:db8::1 -> [2001:db8::1]:PORT
+#   0.0.0.0   -> 0.0.0.0:PORT
+format_listen() {
+	local a="$1" p="$2"
+	case "$a" in
+		"") echo ":$p" ;;
+		\[*\]) echo "${a}:$p" ;;          # already bracketed
+		*:*) echo "[$a]:$p" ;;            # IPv6 literal
+		*) echo "${a}:$p" ;;             # IPv4 / hostname
+	esac
+}
+
 ensure_binary() {
 	[ -x "$PROG" ] && return 0
 	logger -t hysteria-realm-server "binary missing, attempting download"
@@ -106,7 +121,7 @@ start_service() {
 	procd_set_param command /bin/sh -c "exec '$PROG' >>'$LOGFILE' 2>&1"
 
 	procd_set_param env "HYSTERIA_REALM_TOKEN=$token"
-	procd_append_param env "HYSTERIA_REALM_LISTEN=${listen_addr}:${listen_port}"
+	procd_append_param env "HYSTERIA_REALM_LISTEN=$(format_listen "$listen_addr" "$listen_port")"
 	procd_append_param env "HYSTERIA_REALM_MAX_REALMS=$max_realms"
 	procd_append_param env "HYSTERIA_REALM_MAX_REALMS_PER_IP=$max_realms_per_ip"
 	procd_append_param env "HYSTERIA_REALM_NAME_PATTERN=$realm_name_pattern"

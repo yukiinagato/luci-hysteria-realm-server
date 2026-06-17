@@ -153,15 +153,61 @@ method_gen_cert() {
 }
 
 method_ipaddr() {
-	local wan4 wan6 lan4
+	local wan4 wan6 lan4 v4tech="" v4restricted=0 dump
+
+	dump="$(ubus call network.interface dump 2>/dev/null)"
+
+	# --- IPv4 (WAN) ---
 	wan4="$(ubus call network.interface.wan status 2>/dev/null | jsonfilter -e '@["ipv4-address"][0].address' 2>/dev/null)"
 	[ -z "$wan4" ] && wan4="$(ip -4 route get 1.1.1.1 2>/dev/null | sed -n 's/.* src \([0-9.]*\).*/\1/p' | head -n1)"
+
+	# --- IPv6 (WAN, global scope only) ---
 	wan6="$(ubus call network.interface.wan6 status 2>/dev/null | jsonfilter -e '@["ipv6-address"][0].address' 2>/dev/null)"
+	[ -z "$wan6" ] && wan6="$(ubus call network.interface.wan status 2>/dev/null | jsonfilter -e '@["ipv6-address"][0].address' 2>/dev/null)"
+	if [ -z "$wan6" ]; then
+		# Fallback: first global-scope IPv6, excluding ULA (fc00::/7) and link-local.
+		wan6="$(ip -6 addr show scope global 2>/dev/null | sed -n 's#.*inet6 \([0-9a-fA-F:]*\)/.*#\1#p' | grep -vi '^f[cd]' | head -n1)"
+	fi
+
+	# --- LAN IPv4 (fallback for display) ---
 	lan4="$(ubus call network.interface.lan status 2>/dev/null | jsonfilter -e '@["ipv4-address"][0].address' 2>/dev/null)"
+
+	# --- IPv4-restricted transition tech (Japan: MAP-E / DS-Lite, etc.) ---
+	# These deliver IPv4 over IPv6; inbound IPv4 is port-limited (MAP-E) or
+	# unavailable (DS-Lite), so IPv6 is the reliable rendezvous path.
+	case "$dump" in
+		*'"proto":"map"'*)    v4tech="MAP-E";   v4restricted=1 ;;
+		*'"proto":"dslite"'*) v4tech="DS-Lite"; v4restricted=1 ;;
+		*'"proto":"464xlat"'*) v4tech="464XLAT"; v4restricted=1 ;;
+	esac
+
 	json_init
 	json_add_string wan4 "${wan4:-}"
 	json_add_string wan6 "${wan6:-}"
 	json_add_string lan4 "${lan4:-}"
+	json_add_string v4tech "$v4tech"
+	json_add_boolean v4restricted "$v4restricted"
+	json_dump
+}
+
+method_mape() {
+	# OpenWrt's map proto writes the mapcalc result (authoritative, incl. the
+	# v6plus quirks) to /tmp/map-<cfg>.rules. Read the assigned port sets and
+	# the shared IPv4 from there — no need to re-derive the PSID ourselves.
+	local rulefile ip4="" ports="" bmr
+	rulefile="$(ls /tmp/map-*.rules 2>/dev/null | head -n1)"
+	if [ -n "$rulefile" ]; then
+		# First line is "rule=..."; the rest is the RULE_* assignments to eval.
+		eval "$(sed '1d' "$rulefile" 2>/dev/null)" 2>/dev/null
+		bmr="$RULE_BMR"
+		if [ -n "$bmr" ]; then
+			eval "ip4=\${RULE_${bmr}_IPV4ADDR}"
+			eval "ports=\${RULE_${bmr}_PORTSETS}"
+		fi
+	fi
+	json_init
+	json_add_string ip4 "${ip4:-}"
+	json_add_string ports "${ports:-}"
 	json_dump
 }
 
@@ -191,6 +237,7 @@ case "$1" in
 		json_add_object "gen_cert"; json_add_string "cn" ""; json_add_int "days" 0; json_close_object
 		json_add_object "logs"; json_add_int "lines" 0; json_close_object
 		json_add_object "ipaddr"; json_close_object
+		json_add_object "mape"; json_close_object
 		json_dump
 		;;
 	call)
@@ -203,6 +250,7 @@ case "$1" in
 			gen_cert)  method_gen_cert "$input" ;;
 			logs)      method_logs "$input" ;;
 			ipaddr)    method_ipaddr ;;
+			mape)      method_mape ;;
 			*)         echo '{}' ;;
 		esac
 		;;
