@@ -74,16 +74,24 @@ map_asset() {
 }
 
 fetch() {
-	# fetch <url> <dest>
+	# fetch <url> <dest> — try every available downloader; HTTPS integrity is
+	# guaranteed later by the SHA256 check, so an unverified-TLS retry is safe.
 	local url="$1" dest="$2"
 	rm -f "$dest"
+	# uclient-fetch (busybox) needs a libustream-ssl variant for HTTPS.
 	if command -v uclient-fetch >/dev/null 2>&1; then
-		uclient-fetch -q -O "$dest" "$url" 2>/dev/null || \
-		uclient-fetch --no-check-certificate -q -O "$dest" "$url" 2>/dev/null
-	elif command -v wget >/dev/null 2>&1; then
-		wget -q -O "$dest" "$url" 2>/dev/null
-	elif command -v curl >/dev/null 2>&1; then
-		curl -fsSL -o "$dest" "$url" 2>/dev/null
+		uclient-fetch -q -O "$dest" "$url" 2>/dev/null && [ -s "$dest" ] && return 0
+		uclient-fetch --no-check-certificate -q -O "$dest" "$url" 2>/dev/null && [ -s "$dest" ] && return 0
+	fi
+	# full wget-ssl / GNU wget
+	if command -v wget >/dev/null 2>&1; then
+		wget -q -O "$dest" "$url" 2>/dev/null && [ -s "$dest" ] && return 0
+		wget --no-check-certificate -q -O "$dest" "$url" 2>/dev/null && [ -s "$dest" ] && return 0
+	fi
+	# curl
+	if command -v curl >/dev/null 2>&1; then
+		curl -fsSL -o "$dest" "$url" 2>/dev/null && [ -s "$dest" ] && return 0
+		curl -fsSLk -o "$dest" "$url" 2>/dev/null && [ -s "$dest" ] && return 0
 	fi
 	[ -s "$dest" ]
 }
@@ -104,6 +112,9 @@ log "Downloading: $URL"
 
 if ! fetch "$URL" "$TMP_PATH"; then
 	log "ERROR: download failed or produced an empty file."
+	log "If this router has no HTTPS support yet, install any TLS backend, e.g.:"
+	log "  opkg install libustream-mbedtls   (or libustream-openssl / wget-ssl)"
+	log "or set 'download_url' in /etc/config/hysteria-realm-server to a reachable URL."
 	rm -f "$TMP_PATH"
 	exit 3
 fi

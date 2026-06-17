@@ -28,10 +28,13 @@ define Package/hysteria-realm-server
   SUBMENU:=Web Servers/Proxies
   TITLE:=Hysteria Realm rendezvous server
   URL:=https://github.com/apernet/hysteria-realm-server
-  # uclient-fetch (default on OpenWrt) + CA bundle are needed for the
-  # HTTPS download of the prebuilt binary. openssl-util is used by the
-  # LuCI panel to generate a self-signed TLS certificate.
-  DEPENDS:=+ca-bundle +libustream-mbedtls +openssl-util
+  # ca-bundle: CA certs for the HTTPS binary download.
+  # openssl-util: used by the LuCI panel to generate a self-signed TLS cert.
+  # NOTE: do NOT depend on a specific libustream-ssl variant (mbedtls/openssl/
+  # wolfssl) — they mutually conflict (all install /lib/libustream-ssl.so), so
+  # pinning one breaks systems that already ship another. Any installed variant
+  # works for HTTPS; uclient-fetch also falls back to wget/curl in the updater.
+  DEPENDS:=+ca-bundle +openssl-util
   PKGARCH:=all
 endef
 
