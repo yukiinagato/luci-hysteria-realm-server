@@ -103,7 +103,7 @@ return view.extend({
 
 		o = s.taboption('advanced', form.Value, 'version', _('Core version'),
 			_('Plugin release tag (without v) to download binaries from. Must match a release published by the release repository.'));
-		o.placeholder = '1.1.0';
+		o.placeholder = '1.1.1';
 
 		o = s.taboption('advanced', form.Value, 'release_repo', _('Release repository'),
 			_('GitHub repository (owner/name) that hosts the CI-built per-architecture binaries.'));
