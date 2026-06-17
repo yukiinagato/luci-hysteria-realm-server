@@ -125,12 +125,14 @@ jobs:
         run: |
           mkdir -p out
           found=0
-          for f in $(find bin -name '*.ipk'); do
+          # Only our own feed's packages live under .../hrs/ — this excludes the
+          # hundreds of base/kmod/lib .ipk that ship inside the SDK image.
+          for f in $(find bin -path '*/hrs/*.ipk'); do
             base="$(basename "$f" .ipk)"
             cp "$f" "out/${base}_openwrt-${{ matrix.branch }}.ipk"
             found=1
           done
-          [ "$found" = 1 ] || { echo "No .ipk produced"; exit 1; }
+          [ "$found" = 1 ] || { echo "No target .ipk produced under feed 'hrs'"; exit 1; }
           ls -l out
 
       - name: Upload ipk artifact
