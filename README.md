@@ -210,7 +210,7 @@ The same workflow also packages the plugin into installable `.ipk` files
 `Architecture: all` and depend by name only, so a single set works on every CPU
 and every modern OpenWrt release (21.02+, i.e. client-side JS LuCI):
 
-# Noted: Install ```hysteria-realm-server_*_all.ipk``` first!!!
+# Install ```hysteria-realm-server_*_all.ipk``` first!!!
 
 ```sh
 opkg install ./hysteria-realm-server_*_all.ipk
