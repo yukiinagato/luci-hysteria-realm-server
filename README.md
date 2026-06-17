@@ -4,86 +4,105 @@
 
 [English](#english) | [中文](#中文)
 
-An OpenWrt plugin that deploys and manages the
-[Hysteria Realm Server](https://github.com/apernet/hysteria-realm-server) —
-the rendezvous server for the **P2P (Realms)** feature of Hysteria 2 — with a
-full LuCI control panel. Bilingual (English / 简体中文).
+OpenWrt 上的 LuCI 插件,用来在路由器上部署和管理
+[Hysteria Realm Server](https://github.com/apernet/hysteria-realm-server) ——
+Hysteria 2 的 P2P(Realms)会合服务器。界面支持中文和英文。
 
 ---
 
 ## 中文
 
-### 这是什么
+### 简介
 
-Hysteria Realm Server 是 Hysteria 2 的 P2P(Realms)功能所需的「会合服务器」。
-它通过协调 UDP 打洞,让你无需公网 IP、无需端口转发,就能在 NAT/防火墙后方部署
-Hysteria 服务器。本插件把它打包成 OpenWrt 软件包,并提供 LuCI 图形面板。
+Hysteria Realm Server 是 Hysteria 2 的 P2P(Realms)功能用到的会合服务器,负责协调
+UDP 打洞,让 Hysteria 业务服务器可以待在 NAT/防火墙后面,不需要公网 IP 或端口转发。
+这个插件把它打包成 OpenWrt 软件包,并配了一个 LuCI 面板。
 
-> **前提:运行本会合服务器的这台路由器自身必须能从公网访问到。** Hysteria 服务端和
-> 客户端都直接连接它,所以它需要公网 IP,或已转发的 TCP 端口 / DDNS。它是整套方案里
-> 唯一不能位于未做转发的 NAT 后方的组件——**CGNAT(运营商级 NAT)环境无法工作**。
-> (被它「解放」的是 Hysteria 业务服务器,那些可以在 NAT 后面;但会合点必须公网可达。)
+有一点要先讲清楚:会合服务器本身必须能从公网访问到。Hysteria 的服务端和客户端都要
+直接连它,所以跑它的这台路由器需要公网 IP,或者把对应的 TCP 端口转发进来 / 配 DDNS。
+它是整套里唯一不能藏在 NAT 后面的角色,CGNAT 环境用不了。能被它「解放」到 NAT 后面的
+是 Hysteria 业务服务器,而不是会合点本身。
 
 ### 功能
 
-- **服务管理**:启动 / 停止 / 重启、开机自启的启用/禁用,基于 procd 守护与自动重启。
-- **完整配置**:监听地址与端口、token、TLS、realm 数量限额、可信代理头、名称正则、调试日志。
-- **自动下载核心**:面板一键按 CPU 架构(`DISTRIB_ARCH`)从本仓库 GitHub Releases
-  下载匹配的二进制,并校验 SHA256。二进制由本仓库的 GitHub Actions CI 交叉编译,
-  覆盖所有常见 OpenWrt 架构(见下「持续集成」)。
-- **一键生成 Token**:在面板内生成强随机 token,并给出服务端/客户端对接示例。
-- **TLS 证书管理**:填写证书/私钥路径,或一键生成自签名 ECDSA 证书。
-- **自动防火墙**:启动时自动在 WAN 区域为监听端口添加 input ACCEPT 规则,停止时移除。
-- **实时状态与日志**:运行状态、PID、监听信息,以及每 5 秒刷新的服务日志。
-- **中英文**:界面随 LuCI 语言自动切换。
+面板分四个标签页:
 
-### 软件包结构
+- 概览:运行状态、PID、监听信息;启停/重启和开机自启开关;一键下载或更新核心;
+  以及按本机地址自动填好的对接示例。
+- 设置:监听地址和端口、token、realm 限额、可信代理头、名称正则、调试日志等,
+  token 旁边有一键生成。
+- TLS:填证书/私钥路径,或一键生成自签名 ECDSA 证书。
+- 日志:读取服务输出,大约每 5 秒刷新。
 
-```
-luci-hysteria-realm-server/
-├── hysteria-realm-server/                 # 运行时软件包(二进制 + 服务)
-│   ├── Makefile
-│   └── files/
-│       ├── hysteria-realm-server.config   # /etc/config/hysteria-realm-server (UCI)
-│       ├── hysteria-realm-server.init     # procd 启动脚本(含防火墙自动配置)
-│       └── hysteria-realm-server.update   # 架构检测 + 下载/更新脚本
-└── luci-app-hysteria-realm-server/        # LuCI 前端(现代 JS / client-side)
-    ├── Makefile
-    ├── htdocs/luci-static/resources/view/hysteria-realm-server/
-    │   ├── overview.js                     # 概览:状态、服务控制、下载核心、对接示例
-    │   ├── config.js                       # 设置:全部配置 + 一键生成 token
-    │   ├── tls.js                          # TLS:路径配置 + 生成自签名证书
-    │   └── logs.js                         # 日志:实时查看
-    ├── root/
-    │   ├── usr/libexec/rpcd/luci.hysteria-realm-server   # 后端(ubus 方法)
-    │   ├── usr/share/luci/menu.d/...json                 # 菜单
-    │   └── usr/share/rpcd/acl.d/...json                  # 权限
-    └── po/                                  # 翻译(模板 + zh_Hans)
-```
+另外,服务启动时会按 UCI 配置在 WAN 区域放行监听端口(停止时移除),界面也会跟随
+LuCI 的语言在中英文之间切换。
 
-### 编译
+### 安装
 
-把两个目录放进 OpenWrt 源码树或 SDK 的 `package/` 下(例如
-`package/network/hysteria-realm-server` 与 `package/luci/luci-app-hysteria-realm-server`),
-然后:
+两个包都是架构无关的 `.ipk`,从 Releases 下载后直接安装,先装运行时再装面板:
 
 ```sh
-./scripts/feeds update -a && ./scripts/feeds install -a   # 确保 luci 等依赖可用
-make menuconfig
-#   LuCI -> Applications -> luci-app-hysteria-realm-server  [*]
+opkg install ./hysteria-realm-server_*_all.ipk
+opkg install ./luci-app-hysteria-realm-server_*_all.ipk
+```
+
+核心二进制没有打进 ipk。装好后到面板「概览」点「下载 / 更新核心」,会按 CPU 架构拉取
+对应文件(服务首次启动时也会自动拉)。
+
+### 使用
+
+1. 安装后进入 服务 → Hysteria Realm Server。
+2. 在概览页点「下载 / 更新核心」。
+3. 在设置页生成 token,填监听端口,勾选启用,保存并应用。
+4. 需要 TLS 就在 TLS 页生成自签名证书并启用。
+5. 回到概览启动服务、打开自启,把对接示例复制到 Hysteria 2 的配置里。
+
+### IPv6 与 MAP-E
+
+默认监听地址是 `::`,即 IPv4 + IPv6 双栈,纯 IPv6 线路也能用;只想要 IPv4 就改成
+`0.0.0.0`。地址会自动按 Go 的写法处理,IPv6 字面量会补上方括号。
+
+概览会探测并列出 IPv4 / IPv6 两个接入地址,对接示例优先填 IPv6——它没有 NAT 和端口
+限制,作为会合点最省事。两种地址都有时,建议用一个同时配了 A 和 AAAA 记录的域名当
+`server`。
+
+日本常见的 MAP-E / DS-Lite(v6プラス、OCN バーチャルコネクト、transix 等)属于
+IPv4-over-IPv6:MAP-E 的入站 IPv4 只有运营商按 PSID 分到的一小段端口,DS-Lite 则没有
+入站 IPv4。这类线路面板会自动识别并提示,走 IPv6 最简单。
+
+如果是 MAP-E 且由 OpenWrt 的 `map` 协议接管,面板会直接读取它算好的端口集
+(`/tmp/map-*.rules` 里的 `RULE_*_PORTSETS`)和共享 IPv4,列出你的端口范围,并检查当前
+监听端口在不在范围内,不在就提示一个可用的。如果没读到,面板里还有一个按 RFC 7597
+GMA 算法的计算器,填偏移 a、PSID 长度 k 和 PSID 就能算出来(默认 a=4、k=8,对应 JPIX
+v6プラス)。要用 IPv4,把监听端口设到这些范围之内即可。
+
+### 从源码编译(可选)
+
+一般直接用 Releases 里的 ipk 就行。想自己编 LuCI 包,把两个目录放进 OpenWrt 源码树或
+SDK 的 `package/` 下:
+
+```sh
+./scripts/feeds update -a && ./scripts/feeds install -a
+make menuconfig    # LuCI -> Applications -> luci-app-hysteria-realm-server
 make package/luci-app-hysteria-realm-server/compile V=s
 ```
 
-生成的 `.ipk`(`hysteria-realm-server_*.ipk` 与 `luci-app-hysteria-realm-server_*.ipk`)
-用 `opkg install` 安装即可。LuCI 前端不需要交叉编译,二进制在路由器首次启动或
-面板「下载/更新核心」时按需获取。
+也可以不用 SDK,用脚本直接打包(需要 bash、tar、gzip、python3):
 
-### 持续集成(CI)与发布
+```sh
+tools/build-ipk.sh 1.1.0-1 ./out
+```
 
-仓库内置 `.github/workflows/release.yml`,会拉取上游
+`tools/po2lmo.py` 用纯 Python 把中文 `.po` 编成 LuCI 用的 `.lmo`,所以打包不依赖 OpenWrt
+工具链。两个包都是 `Architecture: all`、依赖只按名字声明,一份就能用在所有 CPU 和现代
+OpenWrt(21.02 及以上,即用 client-side JS 的 LuCI)。
+
+### 持续集成与发布
+
+`.github/workflows/release.yml` 会拉取上游
 [apernet/hysteria-realm-server](https://github.com/apernet/hysteria-realm-server)
-的 Go 源码(纯 Go、`CGO_ENABLED=0`),交叉编译以下 OpenWrt 常见架构并发布到本仓库的
-Release(每个文件附带 `.sha256` 校验):
+的 Go 源码(纯 Go,`CGO_ENABLED=0`),交叉编译下面这些架构,连同 `.sha256` 一起发布到
+本仓库的 Release,同时用 `tools/build-ipk.sh` 打出两个 ipk。
 
 | 资源名 (asset) | Go 目标 | 对应 OpenWrt `DISTRIB_ARCH` |
 | --- | --- | --- |
@@ -98,61 +117,20 @@ Release(每个文件附带 `.sha256` 校验):
 | `…-mips64le_softfloat` | mips64le softfloat | `mips64el_*` |
 | `…-riscv64` | riscv64 | `riscv64*` |
 
-CI 还会把插件本身打成可直接 `opkg install` 的 `.ipk`。**不依赖 OpenWrt SDK**——
-由 `tools/build-ipk.sh` 直接组装(`tools/po2lmo.py` 纯 Python 生成中文 `.lmo`)。
-两个包都是架构无关(`Architecture: all`)、依赖只按名字声明,所以**一份就通用**,
-适用于所有 CPU、所有现代 OpenWrt 版本(21.02+,即支持 client-side JS 的 LuCI):
+插件运行时按 `DISTRIB_ARCH` 选对应资源下载,并校验 SHA256。
 
-- `hysteria-realm-server_<ver>-1_all.ipk`
-- `luci-app-hysteria-realm-server_<ver>-1_all.ipk`(已内置简体中文)
+插件的发布版本(git tag)和上游核心版本是分开的:上游版本固定在工作流的
+`UPSTREAM_VERSION`,只有上游出新核心时才需要改;平时发插件新版本直接打 tag 即可。
+触发方式是推一个 `v` 开头的 tag(如 `git tag v1.1.0 && git push origin v1.1.0`),或在
+Actions 页手动运行并填版本。下载来源仓库由 UCI 的 `release_repo` 决定,默认是
+`yukiinagato/luci-hysteria-realm-server`,也能在设置里改。
 
-安装(先装运行时,再装面板):
+### 注意事项
 
-```sh
-opkg install ./hysteria-realm-server_*_all.ipk
-opkg install ./luci-app-hysteria-realm-server_*_all.ipk
-```
-
-> 本地也可手动打包:`tools/build-ipk.sh 1.0.1-1 ./out`(需 bash、tar、gzip、ar、python3)。
-
-**触发方式:**
-
-- **推送 tag**:`git tag v1.0.1 && git push origin v1.0.1` → 自动构建上游 `v1.0.1`
-  的二进制 + 插件 ipk,并以 `v1.0.1` 发布。插件默认 `version=1.0.1`,即可自动匹配下载。
-- **手动**:在 GitHub 的 Actions 页面运行工作流,填上游版本与发布标签(可用于打
-  自定义后缀,如把上游 1.0.1 发布成 `v1.0.1-1`)。
-
-插件从哪个仓库下载由 UCI 的 `release_repo` 决定(默认
-`yukiinagato/luci-hysteria-realm-server`),也可在「设置 → 高级」修改。
-
-> 升级上游版本:改插件「设置」里的 `Core version`,并确保该版本已在 Release 中构建好;
-> 或推一个新 tag 让 CI 构建。
-
-### 使用
-
-1. 安装后进入 **服务 → Hysteria Realm Server**。
-2. 在 **概览** 点击「下载 / 更新核心」获取二进制。
-3. 在 **设置** 点击 token 旁的「生成」,填好监听端口,勾选「启用」,保存并应用。
-4. (可选)在 **TLS** 一键生成自签名证书并启用。
-5. 回到 **概览** 启动服务、启用自启;复制「对接配置示例」到 Hysteria 2 配置中。
-
-### IPv6 与 MAP-E(日本线路)
-
-- **监听**:默认 `listen_addr` 为 `::`,即 IPv4+IPv6 双栈监听;纯 IPv6 线路也能正常工作。仅需 IPv4 时改为 `0.0.0.0`。监听地址会自动按 Go 语法格式化(IPv6 字面量自动加 `[]`)。
-- **双栈**:面板会同时探测并列出 IPv4 / IPv6 接入地址,示例默认优先填 IPv6(无 NAT、无端口限制,最可靠)。建议用同时配置 A + AAAA 记录的域名作为 `server`。
-- **MAP-E / DS-Lite(日本常见,如 v6プラス、OCN バーチャルコネクト、transix 等)**:这类 IPv4-over-IPv6 线路的**入站 IPv4 端口受限**(MAP-E 只有运营商按 PSID 分配的少量端口)甚至完全不可用(DS-Lite)。
-  - 面板会自动检测并给出醒目提示,**强烈建议走 IPv6**:会合点用 IPv6 暴露,客户端用 IPv6 连接,完全绕开端口限制。
-  - **MAP-E 端口自动识别**:若是 MAP-E,面板会直接读取 OpenWrt `map` 协议已算好的端口集(`/tmp/map-*.rules` 中的 `RULE_*_PORTSETS`)和共享 IPv4,列出你被分配的端口范围,并校验当前监听端口是否落在其中(不在则提示并给出第一个可用端口)。
-  - 面板还内置 **RFC 7597 GMA 端口计算器**:输入偏移 a、PSID 长度 k、PSID 即可算出端口集(默认 a=4、k=8 对应 JPIX v6プラス),自动检测失败时也能手动核对。
-  - 若要用 IPv4,把「监听端口」设到上述范围之内即可;否则外部无法连入。
-  - 防火墙规则默认同时覆盖 IPv4/IPv6(family any),IPv6 入站即可放行。
-
-### 安全提示
-
-- token 是唯一鉴权凭证,请使用足够强度的随机值并妥善保管。
-- 「可信代理头」仅在确实位于可信代理后方时开启,否则客户端可伪造 IP 绕过限额。
-- 直接暴露到公网时建议启用 TLS;自签名证书需客户端关闭校验(`insecure: true`)。
-- 服务所有状态都在内存中,重启后 realm 需重新注册(这是上游设计)。
+- token 是唯一的鉴权凭证,用一个足够随机的值。
+- 可信代理头只在确实有可信代理时才开,否则客户端可以伪造 IP 绕过限额。
+- 直接暴露到公网建议开 TLS;自签名证书需要客户端设 `insecure: true`。
+- 服务状态都在内存里,重启后 realm 需要重新注册(上游本来就是这样设计的)。
 
 ---
 
@@ -160,92 +138,145 @@ opkg install ./luci-app-hysteria-realm-server_*_all.ipk
 
 ### What it is
 
-Hysteria Realm Server is the rendezvous server for the **P2P (Realms)** feature
-of Hysteria 2. It coordinates UDP hole punching so you can host Hysteria servers
-behind NAT/firewalls — no public IP, no port forwarding. This plugin packages it
-for OpenWrt with a full LuCI panel.
+Hysteria Realm Server is the rendezvous server behind Hysteria 2's P2P (Realms)
+feature. It coordinates UDP hole punching so the actual Hysteria servers can live
+behind NAT or a firewall without a public IP or port forwarding. This plugin
+packages it for OpenWrt and adds a LuCI panel.
 
-> **Prerequisite: the router running this rendezvous server must itself be
-> publicly reachable.** Hysteria servers and clients connect to it directly, so
-> it needs a public IP, or a forwarded TCP port / DDNS. It is the one component
-> that cannot sit behind un-forwarded NAT — **CGNAT will not work**. (What gets
-> "freed" to live behind NAT are the Hysteria application servers, not the
-> rendezvous point itself.)
+One thing worth stating up front: the rendezvous server itself has to be
+reachable from the internet. Both Hysteria servers and clients connect straight
+to it, so the router running it needs a public IP, or the listen port forwarded
+in / a DDNS name. It is the only piece that cannot hide behind NAT, and CGNAT
+won't work. The part that gets to live behind NAT is the Hysteria application
+server, not the rendezvous point.
 
 ### Features
 
-- **Service control** — start / stop / restart, enable/disable boot autostart,
-  procd-supervised with auto-respawn.
-- **Full configuration** — listen address/port, token, TLS, realm limits,
-  trusted proxy header, name pattern, debug logging.
-- **Auto-download core** — one click fetches the official prebuilt binary
-  matching the router CPU from GitHub Releases (`x86_64`/amd64 and
-  `aarch64`/arm64; other CPUs can set a custom URL).
-- **One-click token** — generate a strong random token and copy the ready-made
-  server/client config snippets.
-- **TLS management** — set cert/key paths or generate a self-signed ECDSA cert.
-- **Automatic firewall** — adds a WAN input ACCEPT rule for the listen port on
-  start, removes it on stop.
-- **Live status & logs** — running state, PID, listen info, log refreshed every 5s.
-- **Bilingual** — follows the LuCI UI language (English / Simplified Chinese).
+The panel has four tabs:
 
-### Build
+- Overview: running state, PID and listen info; start/stop/restart and autostart
+  toggles; download or update the core in one click; and a connection example
+  pre-filled from the router's own address.
+- Settings: listen address and port, token, realm limits, trusted proxy header,
+  name pattern, debug logging, with a one-click token generator next to the token
+  field.
+- TLS: set cert/key paths, or generate a self-signed ECDSA certificate.
+- Logs: the service output, refreshed about every 5 seconds.
 
-Drop both directories into an OpenWrt source tree or SDK under `package/`, then:
+The service also opens the listen port on the WAN zone when it starts (and
+removes the rule when it stops), and the UI follows LuCI's language between
+English and Chinese.
 
-```sh
-./scripts/feeds update -a && ./scripts/feeds install -a
-make menuconfig          # LuCI -> Applications -> luci-app-hysteria-realm-server
-make package/luci-app-hysteria-realm-server/compile V=s
-```
+### Install
 
-Install the resulting `.ipk`s with `opkg`. The LuCI front-end needs no
-cross-compilation; the Go binary is fetched on first start or via the panel.
-
-### CI & releases
-
-`.github/workflows/release.yml` checks out the upstream Go source
-(`CGO_ENABLED=0`), cross-compiles it for all common OpenWrt architectures
-(amd64, 386, arm64, armv7, armv5, mips/mipsle/mips64/mips64le softfloat,
-riscv64) and publishes them — each with a `.sha256` sidecar — to this repo's
-GitHub Release. The plugin maps the router `DISTRIB_ARCH` to the matching asset
-and verifies the checksum.
-
-The same workflow also packages the plugin into installable `.ipk` files
-**without the OpenWrt SDK** — assembled directly by `tools/build-ipk.sh`
-(`tools/po2lmo.py` compiles the zh-cn `.lmo` in pure Python). Both packages are
-`Architecture: all` and depend by name only, so a single set works on every CPU
-and every modern OpenWrt release (21.02+, i.e. client-side JS LuCI):
+Both packages are architecture-independent `.ipk` files. Download them from
+Releases and install the runtime first, then the panel:
 
 ```sh
 opkg install ./hysteria-realm-server_*_all.ipk
 opkg install ./luci-app-hysteria-realm-server_*_all.ipk
 ```
 
-Trigger by pushing a tag (`git push origin v1.0.1`) or running the workflow
-manually from the Actions tab. The download source repo is the UCI option
-`release_repo` (default `yukiinagato/luci-hysteria-realm-server`). For a CPU not
-in the matrix, set a **Custom download URL** in Settings. You can also build the
-ipk locally: `tools/build-ipk.sh 1.0.1-1 ./out`.
+The core binary is not bundled. After installing, open the panel (Overview →
+Download / Update core) to fetch the build matching your CPU; it is also fetched
+automatically the first time the service starts.
 
-### IPv6 & MAP-E (Japanese lines)
+### Usage
 
-- **Listening**: `listen_addr` defaults to `::` — dual-stack IPv4+IPv6; works on IPv6-only lines too. Set `0.0.0.0` for IPv4-only. The address is auto-formatted to Go syntax (IPv6 literals are bracketed).
-- **Dual-stack**: the panel detects and lists both IPv4/IPv6 endpoints and prefers IPv6 in the auto-filled example (no NAT, no port limits). Prefer a domain with both A and AAAA records as the `server`.
-- **MAP-E / DS-Lite** (common in Japan — v6 plus, OCN Virtual Connect, transix, …): inbound IPv4 is **port-restricted** (MAP-E gives only a small ISP-assigned port set per PSID) or unavailable (DS-Lite).
-  - The panel auto-detects this and shows a prominent warning. **Use IPv6**: expose the rendezvous over IPv6 and connect clients over IPv6 to bypass the port limits entirely.
-  - **Automatic MAP-E port detection**: on MAP-E the panel reads the port set already computed by OpenWrt's `map` proto (`RULE_*_PORTSETS` in `/tmp/map-*.rules`) plus the shared IPv4, lists your assigned ranges, and checks whether the current listen port is inside them (suggesting the first valid port if not).
-  - A built-in **RFC 7597 GMA port calculator** (offset a, PSID length k, PSID; defaults a=4/k=8 for JPIX v6plus) lets you verify ranges manually if auto-detection fails.
-  - To use IPv4, set the listen port inside those ranges; otherwise external clients cannot reach it.
-  - The firewall rule covers both IPv4 and IPv6 (family any), so IPv6 inbound is allowed.
+1. Go to Services → Hysteria Realm Server.
+2. Click "Download / Update core" on the Overview tab.
+3. On Settings, generate a token, set the listen port, tick Enabled, Save & Apply.
+4. If you want TLS, generate a self-signed certificate on the TLS tab and enable it.
+5. Back on Overview, start the service and enable autostart, then copy the
+   connection example into your Hysteria 2 config.
 
-### Security notes
+### IPv6 and MAP-E
+
+`listen_addr` defaults to `::`, i.e. dual-stack IPv4+IPv6, which also covers
+IPv6-only lines; set `0.0.0.0` if you only want IPv4. The address is formatted
+to Go's syntax automatically (IPv6 literals get bracketed).
+
+The Overview detects and lists both IPv4 and IPv6 endpoints and fills the example
+with IPv6 first, since it has no NAT or port limits and is the simplest choice for
+a rendezvous point. If you have both, a domain with A and AAAA records makes a
+good `server` value.
+
+MAP-E and DS-Lite (common in Japan — v6 plus, OCN Virtual Connect, transix, …)
+are IPv4-over-IPv6: with MAP-E only a small ISP-assigned port set (per PSID) is
+reachable over IPv4, and DS-Lite has no inbound IPv4 at all. The panel detects
+these and points you to IPv6, which is the easy path.
+
+When MAP-E is handled by OpenWrt's `map` proto, the panel reads the port set it
+already computed (`RULE_*_PORTSETS` in `/tmp/map-*.rules`) and the shared IPv4,
+shows your assigned ranges, and checks whether the current listen port falls in
+them (suggesting a valid one if not). If that file isn't there, the panel also
+has an RFC 7597 GMA calculator: enter offset a, PSID length k and the PSID
+(defaults a=4, k=8 match JPIX v6plus). To use IPv4, set the listen port inside
+one of those ranges.
+
+### Building from source (optional)
+
+The Releases ipk is usually all you need. To build the LuCI package yourself,
+drop both directories under `package/` in an OpenWrt source tree or SDK:
+
+```sh
+./scripts/feeds update -a && ./scripts/feeds install -a
+make menuconfig    # LuCI -> Applications -> luci-app-hysteria-realm-server
+make package/luci-app-hysteria-realm-server/compile V=s
+```
+
+You can also skip the SDK and build the ipk with the script (needs bash, tar,
+gzip, python3):
+
+```sh
+tools/build-ipk.sh 1.1.0-1 ./out
+```
+
+`tools/po2lmo.py` compiles the Chinese `.po` into LuCI's `.lmo` in pure Python,
+so packaging needs no OpenWrt toolchain. Both packages are `Architecture: all`
+and depend by name only, so one set works on every CPU and every modern OpenWrt
+(21.02+, i.e. client-side JS LuCI).
+
+### CI and releases
+
+`.github/workflows/release.yml` checks out the upstream
+[apernet/hysteria-realm-server](https://github.com/apernet/hysteria-realm-server)
+Go source (pure Go, `CGO_ENABLED=0`), cross-compiles the architectures below,
+publishes them with a `.sha256` each to this repo's Release, and builds the two
+ipk files with `tools/build-ipk.sh`.
+
+| asset | Go target | OpenWrt `DISTRIB_ARCH` |
+| --- | --- | --- |
+| `…-amd64` | amd64 | `x86_64*` |
+| `…-386` | 386 | `i386*` |
+| `…-arm64` | arm64 | `aarch64*` |
+| `…-armv7` | arm GOARM=7 | `arm_cortex-a*` / neon, vfp |
+| `…-armv5` | arm GOARM=5 | other `arm_*` (runs on v5/v6) |
+| `…-mips_softfloat` | mips softfloat | `mips_*` (big-endian) |
+| `…-mipsle_softfloat` | mipsle softfloat | `mipsel_*` (little-endian) |
+| `…-mips64_softfloat` | mips64 softfloat | `mips64_*` |
+| `…-mips64le_softfloat` | mips64le softfloat | `mips64el_*` |
+| `…-riscv64` | riscv64 | `riscv64*` |
+
+At runtime the plugin picks the asset by `DISTRIB_ARCH` and verifies the SHA256.
+
+The plugin's release version (the git tag) is separate from the upstream core
+version: the upstream version is pinned in the workflow as `UPSTREAM_VERSION` and
+only changes when upstream ships a new core, while plugin releases are just new
+tags. Trigger a build by pushing a `v*` tag (`git tag v1.1.0 && git push origin
+v1.1.0`) or run the workflow manually from the Actions tab. The download source
+repo is the UCI option `release_repo` (default
+`yukiinagato/luci-hysteria-realm-server`), changeable in Settings.
+
+### Notes
 
 - The token is the only credential — use a strong random value.
-- Enable the trusted-proxy header only when actually behind a trusted proxy.
-- Prefer TLS for direct public exposure; self-signed certs need clients to set
-  `insecure: true`.
-- All state is in-memory; realms re-register after a restart (upstream design).
+- Enable the trusted proxy header only when there really is a trusted proxy in
+  front, otherwise clients can spoof their IP and bypass the per-IP limit.
+- Prefer TLS for direct public exposure; self-signed certs need `insecure: true`
+  on the client.
+- All state is in memory, so realms re-register after a restart. That's how
+  upstream is designed.
 
 ### Credits
 
