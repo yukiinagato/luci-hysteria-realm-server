@@ -91,20 +91,22 @@ Release(每个文件附带 `.sha256` 校验):
 | `…-mips64le_softfloat` | mips64le softfloat | `mips64el_*` |
 | `…-riscv64` | riscv64 | `riscv64*` |
 
-CI 同时会用 **OpenWrt 官方 SDK** 把插件本身编译成可直接 `opkg install` 的 `.ipk`
-(两个包都是架构无关 `all`,因此每个 OpenWrt 分支只构建一次即可用于所有 CPU):
+CI 还会把插件本身打成可直接 `opkg install` 的 `.ipk`。**不依赖 OpenWrt SDK**——
+由 `tools/build-ipk.sh` 直接组装(`tools/po2lmo.py` 纯 Python 生成中文 `.lmo`)。
+两个包都是架构无关(`Architecture: all`)、依赖只按名字声明,所以**一份就通用**,
+适用于所有 CPU、所有现代 OpenWrt 版本(21.02+,即支持 client-side JS 的 LuCI):
 
-- `luci-app-hysteria-realm-server_*_all_openwrt-23.05.ipk` / `…_openwrt-24.10.ipk`
-- `hysteria-realm-server_*_all_openwrt-23.05.ipk` / `…_openwrt-24.10.ipk`
+- `hysteria-realm-server_<ver>-1_all.ipk`
+- `luci-app-hysteria-realm-server_<ver>-1_all.ipk`(已内置简体中文)
 
-安装(把 luci-app 的依赖一并装上):
+安装(先装运行时,再装面板):
 
 ```sh
-opkg install ./hysteria-realm-server_*_all_openwrt-23.05.ipk
-opkg install ./luci-app-hysteria-realm-server_*_all_openwrt-23.05.ipk
+opkg install ./hysteria-realm-server_*_all.ipk
+opkg install ./luci-app-hysteria-realm-server_*_all.ipk
 ```
 
-> 更老的固件(21.02/22.03)请用对应 SDK 自行编译;新版 LuCI(23.05/24.10)直接用上面的 ipk。
+> 本地也可手动打包:`tools/build-ipk.sh 1.0.1-1 ./out`(需 bash、tar、gzip、ar、python3)。
 
 **触发方式:**
 
@@ -184,20 +186,22 @@ riscv64) and publishes them — each with a `.sha256` sidecar — to this repo's
 GitHub Release. The plugin maps the router `DISTRIB_ARCH` to the matching asset
 and verifies the checksum.
 
-The same workflow also builds the plugin itself into installable `.ipk` files
-via the official OpenWrt SDK (both packages are arch-independent `all`, so one
-build per OpenWrt branch covers every CPU), for OpenWrt 23.05 and 24.10:
+The same workflow also packages the plugin into installable `.ipk` files
+**without the OpenWrt SDK** — assembled directly by `tools/build-ipk.sh`
+(`tools/po2lmo.py` compiles the zh-cn `.lmo` in pure Python). Both packages are
+`Architecture: all` and depend by name only, so a single set works on every CPU
+and every modern OpenWrt release (21.02+, i.e. client-side JS LuCI):
 
 ```sh
-opkg install ./hysteria-realm-server_*_all_openwrt-23.05.ipk
-opkg install ./luci-app-hysteria-realm-server_*_all_openwrt-23.05.ipk
+opkg install ./hysteria-realm-server_*_all.ipk
+opkg install ./luci-app-hysteria-realm-server_*_all.ipk
 ```
 
 Trigger by pushing a tag (`git push origin v1.0.1`) or running the workflow
 manually from the Actions tab. The download source repo is the UCI option
-`release_repo` (default `yukiinagato/luci-hysteria-realm-server`). For a CPU
-not in the matrix, set a **Custom download URL** in Settings; for firmware
-older than 23.05, build the ipk from the matching SDK yourself.
+`release_repo` (default `yukiinagato/luci-hysteria-realm-server`). For a CPU not
+in the matrix, set a **Custom download URL** in Settings. You can also build the
+ipk locally: `tools/build-ipk.sh 1.0.1-1 ./out`.
 
 ### Security notes
 

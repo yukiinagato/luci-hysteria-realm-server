@@ -5,9 +5,13 @@ name: Build OpenWrt binaries
 # the binaries to this repository's GitHub Release. The LuCI plugin downloads
 # the binary matching the router's DISTRIB_ARCH from here.
 #
+# The PLUGIN release version (git tag, e.g. v1.0.2) is decoupled from the
+# UPSTREAM core version (which apernet source to compile, pinned below). This
+# lets you cut new plugin releases without an upstream release existing.
+#
 # Triggers:
-#   * push a tag like v1.0.1            -> builds upstream v1.0.1, releases as v1.0.1
-#   * manual run (workflow_dispatch)    -> choose upstream version and release tag
+#   * push a tag like v1.0.2  -> compiles upstream UPSTREAM_VERSION, releases as v1.0.2
+#   * manual run              -> choose upstream version and release tag
 
 on:
   push:
@@ -15,16 +19,21 @@ on:
   workflow_dispatch:
     inputs:
       upstream_version:
-        description: "Upstream hysteria-realm-server version (no leading v), e.g. 1.0.1"
+        description: "Upstream hysteria-realm-server source version to compile, e.g. 1.0.1"
         required: true
         default: "1.0.1"
       release_tag:
-        description: "Tag to publish the release under, e.g. v1.0.1"
+        description: "Plugin release tag to publish under, e.g. v1.0.2"
         required: true
-        default: "v1.0.1"
+        default: "v1.0.2"
 
 permissions:
   contents: write
+
+# Which apernet/hysteria-realm-server source tag the core binary is built from.
+# Bump this only when upstream publishes a new core release.
+env:
+  UPSTREAM_VERSION: "1.0.1"
 
 jobs:
   build:
@@ -45,24 +54,21 @@ jobs:
           - { goarch: mips64le, gomips64: softfloat,      asset: mips64le_softfloat }
           - { goarch: riscv64,                            asset: riscv64 }
     steps:
-      - name: Resolve versions
+      - name: Resolve upstream version
         id: ver
         run: |
           if [ "${{ github.event_name }}" = "push" ]; then
-            tag="${GITHUB_REF_NAME}"
-            ver="${tag#v}"
+            upstream="${UPSTREAM_VERSION}"
           else
-            tag="${{ github.event.inputs.release_tag }}"
-            ver="${{ github.event.inputs.upstream_version }}"
+            upstream="${{ github.event.inputs.upstream_version }}"
           fi
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "ver=$ver" >> "$GITHUB_OUTPUT"
+          echo "upstream=$upstream" >> "$GITHUB_OUTPUT"
 
       - name: Checkout upstream source
         uses: actions/checkout@v4
         with:
           repository: apernet/hysteria-realm-server
-          ref: v${{ steps.ver.outputs.ver }}
+          ref: v${{ steps.ver.outputs.upstream }}
           path: src
 
       - name: Set up Go
@@ -97,48 +103,35 @@ jobs:
           if-no-files-found: error
 
   package:
-    name: Package ipk (OpenWrt ${{ matrix.branch }})
+    name: Package ipk (no SDK)
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { sdk: "x86_64-23.05.6", branch: "23.05" }
-          - { sdk: "x86_64-24.10.7", branch: "24.10" }
     steps:
       - name: Checkout plugin repo
         uses: actions/checkout@v4
 
-      # Both packages are PKGARCH:=all (arch-independent), so a single SDK
-      # build per OpenWrt branch produces _all.ipk files usable on every CPU.
-      - name: Build .ipk via OpenWrt SDK
-        uses: openwrt/gh-action-sdk@main
-        env:
-          ARCH: ${{ matrix.sdk }}
-          FEEDNAME: hrs
-          PACKAGES: hysteria-realm-server luci-app-hysteria-realm-server
-          NO_REFRESH_CHECK: "1"
-          NO_SHFMT_CHECK: "1"
-          V: s
-
-      - name: Collect and tag .ipk with OpenWrt branch
+      - name: Resolve plugin version
+        id: ver
         run: |
-          mkdir -p out
-          found=0
-          # Only our own feed's packages live under .../hrs/ — this excludes the
-          # hundreds of base/kmod/lib .ipk that ship inside the SDK image.
-          for f in $(find bin -path '*/hrs/*.ipk'); do
-            base="$(basename "$f" .ipk)"
-            cp "$f" "out/${base}_openwrt-${{ matrix.branch }}.ipk"
-            found=1
-          done
-          [ "$found" = 1 ] || { echo "No target .ipk produced under feed 'hrs'"; exit 1; }
+          if [ "${{ github.event_name }}" = "push" ]; then
+            tag="${GITHUB_REF_NAME}"
+          else
+            tag="${{ github.event.inputs.release_tag }}"
+          fi
+          echo "ver=${tag#v}" >> "$GITHUB_OUTPUT"
+
+      # Both packages are Architecture: all and depend on requirements by name
+      # only, so one lightweight build (no 700MB SDK) works on every CPU and on
+      # every modern OpenWrt release. tools/po2lmo.py compiles the zh-cn catalog.
+      - name: Build .ipk (architecture-independent, no OpenWrt SDK)
+        run: |
+          chmod +x tools/build-ipk.sh
+          tools/build-ipk.sh "${{ steps.ver.outputs.ver }}-1" out
           ls -l out
 
       - name: Upload ipk artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ipk-${{ matrix.branch }}
+          name: ipk
           path: out/*.ipk
           if-no-files-found: error
 

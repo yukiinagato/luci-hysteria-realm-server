@@ -225,7 +225,7 @@ msgstr ""
 msgid "Core version"
 msgstr ""
 
-msgid "Upstream release version to download (e.g. 1.0.1). Must match a tag published by the release repository."
+msgid "Plugin release tag (without v) to download binaries from. Must match a release published by the release repository."
 msgstr ""
 
 msgid "Release repository"

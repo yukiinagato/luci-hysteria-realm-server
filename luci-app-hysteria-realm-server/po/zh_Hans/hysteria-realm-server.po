@@ -226,8 +226,8 @@ msgstr "realm 名称必须匹配的正则表达式。"
 msgid "Core version"
 msgstr "核心版本"
 
-msgid "Upstream release version to download (e.g. 1.0.1). Must match a tag published by the release repository."
-msgstr "要下载的上游发布版本(如 1.0.1)。必须与发布仓库已发布的标签一致。"
+msgid "Plugin release tag (without v) to download binaries from. Must match a release published by the release repository."
+msgstr "下载二进制所用的插件发布标签(不带 v)。必须与发布仓库已发布的 Release 一致。"
 
 msgid "Release repository"
 msgstr "发布仓库"

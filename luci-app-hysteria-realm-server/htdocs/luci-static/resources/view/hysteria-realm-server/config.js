@@ -102,8 +102,8 @@ return view.extend({
 		o.placeholder = '^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$';
 
 		o = s.taboption('advanced', form.Value, 'version', _('Core version'),
-			_('Upstream release version to download (e.g. 1.0.1). Must match a tag published by the release repository.'));
-		o.placeholder = '1.0.1';
+			_('Plugin release tag (without v) to download binaries from. Must match a release published by the release repository.'));
+		o.placeholder = '1.0.2';
 
 		o = s.taboption('advanced', form.Value, 'release_repo', _('Release repository'),
 			_('GitHub repository (owner/name) that hosts the CI-built per-architecture binaries.'));
