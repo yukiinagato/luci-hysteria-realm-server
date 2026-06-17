@@ -129,8 +129,14 @@ msgstr "下载或更新与你路由器 CPU 匹配的核心二进制,由本项目
 msgid "Connection example"
 msgstr "对接配置示例"
 
-msgid "Paste the matching block into your Hysteria 2 config. Replace the public IP/domain with how clients reach this router."
-msgstr "将对应代码块粘贴到你的 Hysteria 2 配置中。请将公网 IP/域名替换为客户端访问本路由器的地址。"
+msgid "The server address below is auto-filled from this router. Paste the matching block into your Hysteria 2 config; adjust the address if clients reach you via a different IP or domain."
+msgstr "下方的服务器地址已根据本路由器自动填入。将对应代码块粘贴到你的 Hysteria 2 配置中;若客户端通过其他 IP 或域名访问你,请相应调整地址。"
+
+msgid "The WAN address %s is private/NAT — external clients need port forwarding, a public IP, or DDNS."
+msgstr "WAN 地址 %s 是内网/NAT 地址——外部客户端需要端口转发、公网 IP 或 DDNS 才能连上。"
+
+msgid "Only a LAN address was found (%s); use the address external clients actually reach this router by."
+msgstr "只检测到 LAN 地址(%s);请改用外部客户端实际访问本路由器的地址。"
 
 msgid "Server side"
 msgstr "服务端"

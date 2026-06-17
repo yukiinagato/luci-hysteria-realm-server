@@ -128,7 +128,13 @@ msgstr ""
 msgid "Connection example"
 msgstr ""
 
-msgid "Paste the matching block into your Hysteria 2 config. Replace the public IP/domain with how clients reach this router."
+msgid "The server address below is auto-filled from this router. Paste the matching block into your Hysteria 2 config; adjust the address if clients reach you via a different IP or domain."
+msgstr ""
+
+msgid "The WAN address %s is private/NAT — external clients need port forwarding, a public IP, or DDNS."
+msgstr ""
+
+msgid "Only a LAN address was found (%s); use the address external clients actually reach this router by."
 msgstr ""
 
 msgid "Server side"

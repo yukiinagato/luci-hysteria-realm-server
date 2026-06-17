@@ -26,6 +26,23 @@ var callInstall = rpc.declare({
 	expect: {}
 });
 
+var callIpaddr = rpc.declare({
+	object: 'luci.hysteria-realm-server',
+	method: 'ipaddr',
+	expect: {}
+});
+
+function isPrivateV4(ip) {
+	var m = /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/.exec(ip || '');
+	if (!m) return false;
+	var a = +m[1], b = +m[2];
+	return a === 10 ||
+		(a === 172 && b >= 16 && b <= 31) ||
+		(a === 192 && b === 168) ||
+		(a === 100 && b >= 64 && b <= 127) ||  // CGNAT
+		a === 127;
+}
+
 function esc(s) {
 	return String(s == null ? '' : s).replace(/[&<>"]/g, function(c) {
 		return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
@@ -78,7 +95,8 @@ function doInstall() {
 return view.extend({
 	load: function() {
 		return Promise.all([
-			uci.load('hysteria-realm-server')
+			uci.load('hysteria-realm-server'),
+			callIpaddr().catch(function() { return {}; })
 		]);
 	},
 
@@ -120,10 +138,25 @@ return view.extend({
 	render: function(data) {
 		var self = this;
 		var token = uci.get('hysteria-realm-server', 'main', 'token') || '';
-		var addr = uci.get('hysteria-realm-server', 'main', 'listen_addr') || '0.0.0.0';
 		var port = uci.get('hysteria-realm-server', 'main', 'listen_port') || '8443';
 		var tls = uci.get('hysteria-realm-server', 'main', 'tls_enabled') === '1';
 		var scheme = tls ? 'https' : 'http';
+
+		// Auto-detect the address clients use to reach this router.
+		var ip = (data && data[1]) || {};
+		var host, hostNote = '';
+		if (ip.wan4) {
+			host = ip.wan4;
+			if (isPrivateV4(ip.wan4))
+				hostNote = _('The WAN address %s is private/NAT — external clients need port forwarding, a public IP, or DDNS.').format(ip.wan4);
+		} else if (ip.wan6) {
+			host = '[' + ip.wan6 + ']';
+		} else if (ip.lan4) {
+			host = ip.lan4;
+			hostNote = _('Only a LAN address was found (%s); use the address external clients actually reach this router by.').format(ip.lan4);
+		} else {
+			host = 'YOUR_PUBLIC_IP_OR_DOMAIN';
+		}
 
 		var statusBox = E('div', {}, E('em', {}, _('Collecting data…')));
 
@@ -141,17 +174,19 @@ return view.extend({
 			}, label);
 		};
 
+		var serverURL = scheme + '://' + host + ':' + port;
+
 		var exampleServer =
 			'# On the Hysteria 2 SERVER (config.yaml)\n' +
 			'realm:\n' +
-			'  server: ' + scheme + '://YOUR_PUBLIC_IP_OR_DOMAIN:' + port + '\n' +
+			'  server: ' + serverURL + '\n' +
 			'  token: ' + (token || '<your-token>') + '\n' +
 			'  name: my-realm';
 
 		var exampleClient =
 			'# On the Hysteria 2 CLIENT (config.yaml)\n' +
 			'realm:\n' +
-			'  server: ' + scheme + '://YOUR_PUBLIC_IP_OR_DOMAIN:' + port + '\n' +
+			'  server: ' + serverURL + '\n' +
 			'  token: ' + (token || '<your-token>') + '\n' +
 			'  name: my-realm';
 
@@ -185,7 +220,8 @@ return view.extend({
 
 			E('div', { 'class': 'cbi-section' }, [
 				E('h3', {}, _('Connection example')),
-				E('p', {}, _('Paste the matching block into your Hysteria 2 config. Replace the public IP/domain with how clients reach this router.')),
+				E('p', {}, _('The server address below is auto-filled from this router. Paste the matching block into your Hysteria 2 config; adjust the address if clients reach you via a different IP or domain.')),
+				hostNote ? E('p', { 'style': 'color:#d9534f' }, hostNote) : '',
 				E('div', { 'style': 'display:flex;gap:12px;flex-wrap:wrap' }, [
 					E('div', { 'style': 'flex:1;min-width:280px' }, [
 						E('strong', {}, _('Server side')),

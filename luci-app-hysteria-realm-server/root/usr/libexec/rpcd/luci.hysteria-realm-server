@@ -152,6 +152,19 @@ method_gen_cert() {
 	json_dump
 }
 
+method_ipaddr() {
+	local wan4 wan6 lan4
+	wan4="$(ubus call network.interface.wan status 2>/dev/null | jsonfilter -e '@["ipv4-address"][0].address' 2>/dev/null)"
+	[ -z "$wan4" ] && wan4="$(ip -4 route get 1.1.1.1 2>/dev/null | sed -n 's/.* src \([0-9.]*\).*/\1/p' | head -n1)"
+	wan6="$(ubus call network.interface.wan6 status 2>/dev/null | jsonfilter -e '@["ipv6-address"][0].address' 2>/dev/null)"
+	lan4="$(ubus call network.interface.lan status 2>/dev/null | jsonfilter -e '@["ipv4-address"][0].address' 2>/dev/null)"
+	json_init
+	json_add_string wan4 "${wan4:-}"
+	json_add_string wan6 "${wan6:-}"
+	json_add_string lan4 "${lan4:-}"
+	json_dump
+}
+
 method_logs() {
 	local lines
 	json_load "$1"
@@ -175,6 +188,7 @@ case "$1" in
 		json_add_object "gen_token"; json_close_object
 		json_add_object "gen_cert"; json_add_string "cn" ""; json_add_int "days" 0; json_close_object
 		json_add_object "logs"; json_add_int "lines" 0; json_close_object
+		json_add_object "ipaddr"; json_close_object
 		json_dump
 		;;
 	call)
@@ -186,6 +200,7 @@ case "$1" in
 			gen_token) method_gen_token ;;
 			gen_cert)  method_gen_cert "$input" ;;
 			logs)      method_logs "$input" ;;
+			ipaddr)    method_ipaddr ;;
 			*)         echo '{}' ;;
 		esac
 		;;
