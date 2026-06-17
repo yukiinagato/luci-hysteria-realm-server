@@ -107,7 +107,9 @@ CI 还会把插件本身打成可直接 `opkg install` 的 `.ipk`。**不依赖 
 - `hysteria-realm-server_<ver>-1_all.ipk`
 - `luci-app-hysteria-realm-server_<ver>-1_all.ipk`(已内置简体中文)
 
-安装(先装运行时,再装面板):
+安装:
+
+# 先装运行时(hysteria-realm-server_*_all.ipk),再装面板(luci-app-hysteria-realm-server_*_all.ipk)
 
 ```sh
 opkg install ./hysteria-realm-server_*_all.ipk
@@ -207,6 +209,8 @@ The same workflow also packages the plugin into installable `.ipk` files
 (`tools/po2lmo.py` compiles the zh-cn `.lmo` in pure Python). Both packages are
 `Architecture: all` and depend by name only, so a single set works on every CPU
 and every modern OpenWrt release (21.02+, i.e. client-side JS LuCI):
+
+# Noted: Install ```hysteria-realm-server_*_all.ipk``` first!!!
 
 ```sh
 opkg install ./hysteria-realm-server_*_all.ipk
