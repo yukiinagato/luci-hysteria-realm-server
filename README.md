@@ -1,5 +1,7 @@
 # luci-app-hysteria-realm-server
 
+[![Build OpenWrt binaries](https://github.com/yukiinagato/luci-hysteria-realm-server/actions/workflows/release.yml/badge.svg)](https://github.com/yukiinagato/luci-hysteria-realm-server/actions/workflows/release.yml)
+
 [English](#english) | [中文](#中文)
 
 An OpenWrt plugin that deploys and manages the
@@ -16,6 +18,11 @@ full LuCI control panel. Bilingual (English / 简体中文).
 Hysteria Realm Server 是 Hysteria 2 的 P2P(Realms)功能所需的「会合服务器」。
 它通过协调 UDP 打洞,让你无需公网 IP、无需端口转发,就能在 NAT/防火墙后方部署
 Hysteria 服务器。本插件把它打包成 OpenWrt 软件包,并提供 LuCI 图形面板。
+
+> **前提:运行本会合服务器的这台路由器自身必须能从公网访问到。** Hysteria 服务端和
+> 客户端都直接连接它,所以它需要公网 IP,或已转发的 TCP 端口 / DDNS。它是整套方案里
+> 唯一不能位于未做转发的 NAT 后方的组件——**CGNAT(运营商级 NAT)环境无法工作**。
+> (被它「解放」的是 Hysteria 业务服务器,那些可以在 NAT 后面;但会合点必须公网可达。)
 
 ### 功能
 
@@ -146,6 +153,13 @@ Hysteria Realm Server is the rendezvous server for the **P2P (Realms)** feature
 of Hysteria 2. It coordinates UDP hole punching so you can host Hysteria servers
 behind NAT/firewalls — no public IP, no port forwarding. This plugin packages it
 for OpenWrt with a full LuCI panel.
+
+> **Prerequisite: the router running this rendezvous server must itself be
+> publicly reachable.** Hysteria servers and clients connect to it directly, so
+> it needs a public IP, or a forwarded TCP port / DDNS. It is the one component
+> that cannot sit behind un-forwarded NAT — **CGNAT will not work**. (What gets
+> "freed" to live behind NAT are the Hysteria application servers, not the
+> rendezvous point itself.)
 
 ### Features
 

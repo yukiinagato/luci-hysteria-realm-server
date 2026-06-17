@@ -41,7 +41,7 @@ return view.extend({
 		var m, s, o;
 
 		m = new form.Map('hysteria-realm-server', _('Hysteria Realm Server — Settings'),
-			_('Configure the rendezvous server. Changes take effect after Save & Apply (the service restarts automatically).'));
+			_('Configure the rendezvous server. Changes take effect after Save & Apply (the service restarts automatically). Note: this server must be publicly reachable (public IP or forwarded port / DDNS) — it cannot work behind un-forwarded NAT or CGNAT.'));
 
 		s = m.section(form.NamedSection, 'main', 'hysteria-realm-server');
 		s.anonymous = true;

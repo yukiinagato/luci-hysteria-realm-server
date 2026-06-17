@@ -194,6 +194,9 @@ return view.extend({
 			E('h2', {}, _('Hysteria Realm Server')),
 			E('div', { 'class': 'cbi-map-descr' },
 				_('Rendezvous server for the Hysteria 2 P2P (Realms) feature. It coordinates UDP hole punching so you can host Hysteria servers behind NAT without a public IP or port forwarding.')),
+			E('div', {
+				'style': 'margin:8px 0;padding:10px 12px;border-left:4px solid #f0ad4e;background:#fcf8e3;border-radius:4px'
+			}, E('strong', {}, _('Prerequisite: this rendezvous server itself must be publicly reachable. Hysteria servers and clients connect to it directly, so this router needs a public IP, or a forwarded TCP port / DDNS. It is the one component that cannot sit behind un-forwarded NAT (CGNAT will not work).'))),
 
 			E('div', { 'class': 'cbi-section' }, [
 				E('h3', {}, _('Status')),

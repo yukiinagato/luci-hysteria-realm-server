@@ -83,6 +83,9 @@ msgstr ""
 msgid "Rendezvous server for the Hysteria 2 P2P (Realms) feature. It coordinates UDP hole punching so you can host Hysteria servers behind NAT without a public IP or port forwarding."
 msgstr ""
 
+msgid "Prerequisite: this rendezvous server itself must be publicly reachable. Hysteria servers and clients connect to it directly, so this router needs a public IP, or a forwarded TCP port / DDNS. It is the one component that cannot sit behind un-forwarded NAT (CGNAT will not work)."
+msgstr ""
+
 msgid "Status"
 msgstr ""
 
@@ -159,7 +162,7 @@ msgstr ""
 msgid "Hysteria Realm Server — Settings"
 msgstr ""
 
-msgid "Configure the rendezvous server. Changes take effect after Save & Apply (the service restarts automatically)."
+msgid "Configure the rendezvous server. Changes take effect after Save & Apply (the service restarts automatically). Note: this server must be publicly reachable (public IP or forwarded port / DDNS) — it cannot work behind un-forwarded NAT or CGNAT."
 msgstr ""
 
 msgid "General"

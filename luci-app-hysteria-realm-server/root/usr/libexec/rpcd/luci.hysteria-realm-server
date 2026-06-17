@@ -173,7 +173,9 @@ method_logs() {
 	case "$lines" in (*[!0-9]*) lines=200 ;; esac
 
 	local out
-	out="$(logread -e hysteria-realm-server 2>/dev/null | tail -n "$lines")"
+	out="$(tail -n "$lines" /tmp/hysteria-realm-server.log 2>/dev/null)"
+	# Fallback to syslog in case the service logged there (older installs).
+	[ -z "$out" ] && out="$(logread -e hysteria-realm 2>/dev/null | tail -n "$lines")"
 	json_init
 	json_add_string log "$out"
 	json_dump

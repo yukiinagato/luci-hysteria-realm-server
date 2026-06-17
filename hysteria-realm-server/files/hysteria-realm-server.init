@@ -9,6 +9,7 @@ PROG="/usr/bin/hysteria-realm-server"
 UPDATER="/usr/libexec/hysteria-realm-server-update"
 CONF="hysteria-realm-server"
 FW_NAME="hysteria_realm_server"
+LOGFILE="/tmp/hysteria-realm-server.log"
 
 # ---------------------------------------------------------------------------
 # Firewall helpers (auto-open the listen port on the WAN zone, input ACCEPT)
@@ -94,27 +95,30 @@ start_service() {
 		return 1
 	}
 
-	procd_open_instance
-	procd_set_param command "$PROG" \
-		--listen "${listen_addr}:${listen_port}" \
-		--max-realms "$max_realms" \
-		--max-realms-per-ip "$max_realms_per_ip" \
-		--realm-name-pattern "$realm_name_pattern"
+	# Fresh log for this run.
+	: > "$LOGFILE" 2>/dev/null
 
-	[ "$debug" = 1 ] && procd_append_param command --debug
+	procd_open_instance hysteria-realm-server
+	# Every option is passed via environment (the binary reads HYSTERIA_REALM_*),
+	# so the regex pattern and token are never re-parsed by a shell. Output is
+	# redirected to a readable log file — procd's syslog capture is tagged by the
+	# instance name and is unreliable to filter for a generic Go binary.
+	procd_set_param command /bin/sh -c "exec '$PROG' >>'$LOGFILE' 2>&1"
+
+	procd_set_param env "HYSTERIA_REALM_TOKEN=$token"
+	procd_append_param env "HYSTERIA_REALM_LISTEN=${listen_addr}:${listen_port}"
+	procd_append_param env "HYSTERIA_REALM_MAX_REALMS=$max_realms"
+	procd_append_param env "HYSTERIA_REALM_MAX_REALMS_PER_IP=$max_realms_per_ip"
+	procd_append_param env "HYSTERIA_REALM_NAME_PATTERN=$realm_name_pattern"
+	[ "$debug" = 1 ] && procd_append_param env "HYSTERIA_REALM_DEBUG=1"
 	[ -n "$trusted_proxy_header" ] && \
-		procd_append_param command --trusted-proxy-header "$trusted_proxy_header"
-
+		procd_append_param env "HYSTERIA_REALM_TRUSTED_PROXY_HEADER=$trusted_proxy_header"
 	if [ "$tls_enabled" = 1 ] && [ -f "$cert_path" ] && [ -f "$key_path" ]; then
-		procd_append_param command --cert "$cert_path" --key "$key_path"
+		procd_append_param env "HYSTERIA_REALM_CERT=$cert_path"
+		procd_append_param env "HYSTERIA_REALM_KEY=$key_path"
 	fi
 
-	# Pass the token via environment so it does not show up in `ps`.
-	procd_set_param env "HYSTERIA_REALM_TOKEN=$token"
-
 	procd_set_param respawn
-	procd_set_param stdout 1
-	procd_set_param stderr 1
 	procd_set_param file /etc/config/"$CONF"
 	procd_close_instance
 

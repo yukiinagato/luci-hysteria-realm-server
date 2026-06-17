@@ -84,6 +84,9 @@ msgstr "监听"
 msgid "Rendezvous server for the Hysteria 2 P2P (Realms) feature. It coordinates UDP hole punching so you can host Hysteria servers behind NAT without a public IP or port forwarding."
 msgstr "Hysteria 2 P2P(Realms)功能的会合服务器。它协调 UDP 打洞,使你无需公网 IP 或端口转发即可在 NAT 后方部署 Hysteria 服务器。"
 
+msgid "Prerequisite: this rendezvous server itself must be publicly reachable. Hysteria servers and clients connect to it directly, so this router needs a public IP, or a forwarded TCP port / DDNS. It is the one component that cannot sit behind un-forwarded NAT (CGNAT will not work)."
+msgstr "前提:本会合服务器自身必须能从公网访问到。Hysteria 服务端和客户端都直接连接它,因此本路由器需要公网 IP,或已转发的 TCP 端口 / DDNS。它是唯一不能位于未做转发的 NAT 后方的组件(CGNAT 无法工作)。"
+
 msgid "Status"
 msgstr "状态"
 
@@ -160,8 +163,8 @@ msgstr "生成"
 msgid "Hysteria Realm Server — Settings"
 msgstr "Hysteria Realm 服务器 — 设置"
 
-msgid "Configure the rendezvous server. Changes take effect after Save & Apply (the service restarts automatically)."
-msgstr "配置会合服务器。更改在“保存并应用”后生效(服务会自动重启)。"
+msgid "Configure the rendezvous server. Changes take effect after Save & Apply (the service restarts automatically). Note: this server must be publicly reachable (public IP or forwarded port / DDNS) — it cannot work behind un-forwarded NAT or CGNAT."
+msgstr "配置会合服务器。更改在“保存并应用”后生效(服务会自动重启)。注意:本服务器必须能从公网访问到(公网 IP,或已做端口转发 / DDNS)——在未做转发的 NAT 或 CGNAT 后方无法工作。"
 
 msgid "General"
 msgstr "常规"
