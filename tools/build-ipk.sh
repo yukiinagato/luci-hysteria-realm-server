@@ -7,7 +7,7 @@
 # Usage: tools/build-ipk.sh <version> <output-dir>
 #   e.g. tools/build-ipk.sh 1.0.1-1 ./out
 #
-# Requires: bash, tar (GNU), gzip, ar (binutils), python3.
+# Requires: bash, tar (GNU), gzip, python3.
 
 set -euo pipefail
 
@@ -34,8 +34,10 @@ make_ipk() {
 	( cd "$stage/control" && TAR "$stage/control.tar.gz" ./ )
 	echo "2.0" > "$stage/debian-binary"
 
+	# OpenWrt .ipk = a gzip-compressed tar of the three members (NOT a Debian
+	# ar archive). opkg expects this outer format; member order matters.
 	rm -f "$OUT/$name"
-	( cd "$stage" && ar rc "$OUT/$name" debian-binary control.tar.gz data.tar.gz )
+	( cd "$stage" && TAR "$OUT/$name" ./debian-binary ./control.tar.gz ./data.tar.gz )
 	echo "built $OUT/$name (installed-size ${isize}B)"
 }
 
